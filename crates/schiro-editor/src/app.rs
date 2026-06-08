@@ -1,5 +1,4 @@
-use std::sync::Arc;
-
+use egui::Key;
 use glam::{Mat4, Vec2, Vec3};
 use schiro_assets::types::MeshAsset;
 use schiro_core::{Aabb, Ray};
@@ -7,6 +6,7 @@ use schiro_ecs::World;
 use schiro_input::InputSystem;
 use schiro_physics::PhysicsWorld;
 use schiro_render::Renderer;
+use std::sync::Arc;
 use tracing::info;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -106,16 +106,13 @@ impl EditorApp {
             self.build_editor_ui(ctx);
         });
 
-        if let (Some(state), Some(window)) =
-            (self.egui_winit_state.as_mut(), self.window.as_ref())
+        if let (Some(state), Some(window)) = (self.egui_winit_state.as_mut(), self.window.as_ref())
         {
             state.handle_platform_output(window, full_output.platform_output.clone());
         }
 
-        let viewport_size = (
-            self.viewport_panel.rect.width() as u32,
-            self.viewport_panel.rect.height() as u32,
-        );
+        let viewport_size =
+            (self.viewport_panel.rect.width() as u32, self.viewport_panel.rect.height() as u32);
 
         let aspect = if viewport_size.1 > 0 {
             viewport_size.0 as f32 / viewport_size.1 as f32
@@ -136,7 +133,13 @@ impl EditorApp {
             renderer.resize_viewport(viewport_size.0, viewport_size.1);
         }
 
-        update_gizmo_transforms(renderer, &self.scene_objects, self.selected_index, self.gizmo_mesh_start, self.current_tool);
+        update_gizmo_transforms(
+            renderer,
+            &self.scene_objects,
+            self.selected_index,
+            self.gizmo_mesh_start,
+            self.current_tool,
+        );
 
         let camera_uniform = self.viewport_panel.camera.to_uniform(aspect);
 
@@ -148,16 +151,14 @@ impl EditorApp {
     }
 
     fn handle_viewport_input(&mut self, aspect: f32) {
-        let vp_size = egui::vec2(
-            self.viewport_panel.rect.width(),
-            self.viewport_panel.rect.height(),
-        );
+        let vp_size =
+            egui::vec2(self.viewport_panel.rect.width(), self.viewport_panel.rect.height());
 
         for key in self.viewport_panel.keys_pressed.clone() {
             match key {
-                egui::Key::W => self.current_tool = EditorTool::Translate,
-                egui::Key::E => self.current_tool = EditorTool::Rotate,
-                egui::Key::R => self.current_tool = EditorTool::Scale,
+                Key::W => self.current_tool = EditorTool::Translate,
+                Key::E => self.current_tool = EditorTool::Rotate,
+                Key::R => self.current_tool = EditorTool::Scale,
                 _ => {}
             }
         }
@@ -223,7 +224,10 @@ impl EditorApp {
         let world_delta = right * dx * sensitivity + up * (-dy) * sensitivity;
 
         let axis_dir = match drag.axis {
-            0 => Vec3::X, 1 => Vec3::Y, 2 => Vec3::Z, _ => return,
+            0 => Vec3::X,
+            1 => Vec3::Y,
+            2 => Vec3::Z,
+            _ => return,
         };
         let move_amount = world_delta.dot(axis_dir);
         self.scene_objects[drag.obj_index].transform.w_axis += axis_dir.extend(0.0) * move_amount;
@@ -233,14 +237,16 @@ impl EditorApp {
     fn drag_rotate(&mut self, drag: GizmoDrag, dx: f32) {
         let angle = dx * 0.01;
         let axis = match drag.axis {
-            0 => Vec3::X, 1 => Vec3::Y, 2 => Vec3::Z, _ => return,
+            0 => Vec3::X,
+            1 => Vec3::Y,
+            2 => Vec3::Z,
+            _ => return,
         };
         let rot = glam::Quat::from_axis_angle(axis, angle);
         let t = &mut self.scene_objects[drag.obj_index].transform;
         let pos = t.w_axis.truncate();
-        let current_rot = glam::Quat::from_mat4(&Mat4::from_cols(
-            t.x_axis, t.y_axis, t.z_axis, glam::Vec4::W,
-        ));
+        let current_rot =
+            glam::Quat::from_mat4(&Mat4::from_cols(t.x_axis, t.y_axis, t.z_axis, glam::Vec4::W));
         *t = Mat4::from_rotation_translation(rot * current_rot, pos);
         self.apply_object_transform(drag.obj_index);
     }
@@ -248,17 +254,25 @@ impl EditorApp {
     fn drag_scale(&mut self, drag: GizmoDrag, dx: f32) {
         let scale_factor = 1.0 + dx * 0.01;
         let axis = match drag.axis {
-            0 => Vec3::X, 1 => Vec3::Y, 2 => Vec3::Z, _ => return,
+            0 => Vec3::X,
+            1 => Vec3::Y,
+            2 => Vec3::Z,
+            _ => return,
         };
         let t = &mut self.scene_objects[drag.obj_index].transform;
         let pos = t.w_axis.truncate();
-        let current_rot = glam::Quat::from_mat4(&Mat4::from_cols(
-            t.x_axis, t.y_axis, t.z_axis, glam::Vec4::W,
-        ));
+        let current_rot =
+            glam::Quat::from_mat4(&Mat4::from_cols(t.x_axis, t.y_axis, t.z_axis, glam::Vec4::W));
         let mut scale = Vec3::ONE;
-        if axis == Vec3::X { scale.x = scale_factor; }
-        if axis == Vec3::Y { scale.y = scale_factor; }
-        if axis == Vec3::Z { scale.z = scale_factor; }
+        if axis == Vec3::X {
+            scale.x = scale_factor;
+        }
+        if axis == Vec3::Y {
+            scale.y = scale_factor;
+        }
+        if axis == Vec3::Z {
+            scale.z = scale_factor;
+        }
         *t = Mat4::from_scale_rotation_translation(scale, current_rot, pos);
         self.apply_object_transform(drag.obj_index);
     }
@@ -277,10 +291,8 @@ impl EditorApp {
         let sel = self.selected_index.unwrap();
         let pos = self.scene_objects[sel].transform.w_axis.truncate();
 
-        let vp_size = egui::vec2(
-            self.viewport_panel.rect.width(),
-            self.viewport_panel.rect.height(),
-        );
+        let vp_size =
+            egui::vec2(self.viewport_panel.rect.width(), self.viewport_panel.rect.height());
         if vp_size.x <= 0.0 || vp_size.y <= 0.0 {
             return false;
         }
@@ -307,9 +319,13 @@ impl EditorApp {
                 let shaft_len = 0.8;
                 for (i, dir) in [Vec3::X, Vec3::Y, Vec3::Z].iter().enumerate() {
                     let sa = aabb_along_axis(center, *dir, 0.0, shaft_len, shaft_half);
-                    if let Some(t) = ray.intersects_aabb(&sa) { return (i, t); }
+                    if let Some(t) = ray.intersects_aabb(&sa) {
+                        return (i, t);
+                    }
                     let ta = aabb_along_axis(center, *dir, shaft_len, 0.2, tip_half);
-                    if let Some(t) = ray.intersects_aabb(&ta) { return (i, t); }
+                    if let Some(t) = ray.intersects_aabb(&ta) {
+                        return (i, t);
+                    }
                 }
             }
             EditorTool::Rotate => {
@@ -317,15 +333,25 @@ impl EditorApp {
                 let ring_thick = 0.05;
                 for (i, axis) in [Vec3::X, Vec3::Y, Vec3::Z].iter().enumerate() {
                     let aabb = ring_aabb(center, *axis, ring_radius, ring_thick);
-                    if let Some(t) = ray.intersects_aabb(&aabb) { return (i, t); }
+                    if let Some(t) = ray.intersects_aabb(&aabb) {
+                        return (i, t);
+                    }
                 }
             }
             EditorTool::Scale => {
                 let handle_half = 0.07;
                 let distance = 0.9;
                 for (i, dir) in [Vec3::X, Vec3::Y, Vec3::Z].iter().enumerate() {
-                    let aabb = aabb_along_axis(center, *dir, distance - handle_half, handle_half * 2.0, handle_half);
-                    if let Some(t) = ray.intersects_aabb(&aabb) { return (i, t); }
+                    let aabb = aabb_along_axis(
+                        center,
+                        *dir,
+                        distance - handle_half,
+                        handle_half * 2.0,
+                        handle_half,
+                    );
+                    if let Some(t) = ray.intersects_aabb(&aabb) {
+                        return (i, t);
+                    }
                 }
             }
         }
@@ -378,10 +404,7 @@ impl EditorApp {
             .show(ctx, |ui| {
                 let viewport_frame = egui::Frame::none()
                     .fill(crate::theme::faint_bg_color())
-                    .stroke(egui::Stroke::new(
-                        1.0,
-                        crate::theme::faint_bg_color(),
-                    ))
+                    .stroke(egui::Stroke::new(1.0, crate::theme::faint_bg_color()))
                     .inner_margin(egui::Margin::same(0));
 
                 viewport_frame.show(ui, |ui| {
@@ -423,9 +446,12 @@ impl EditorApp {
             .show(_ctx, |ui| {
                 ui.horizontal(|ui| {
                     egui::menu::bar(ui, |ui| {
-                        ui.style_mut().visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(4);
-                        ui.style_mut().visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(4);
-                        ui.style_mut().visuals.widgets.active.corner_radius = egui::CornerRadius::same(4);
+                        ui.style_mut().visuals.widgets.inactive.corner_radius =
+                            egui::CornerRadius::same(4);
+                        ui.style_mut().visuals.widgets.hovered.corner_radius =
+                            egui::CornerRadius::same(4);
+                        ui.style_mut().visuals.widgets.active.corner_radius =
+                            egui::CornerRadius::same(4);
 
                         ui.menu_button("File", |ui| {
                             if ui.button("New Project").clicked() {}
@@ -443,9 +469,7 @@ impl EditorApp {
                             if ui.button("Asset Browser").clicked() {}
                             if ui.button("Hierarchy").clicked() {}
                         });
-                        ui.menu_button("Help", |ui| {
-                            if ui.button("About").clicked() {}
-                        });
+                        ui.menu_button("Help", |ui| if ui.button("About").clicked() {});
                     });
 
                     ui.add_space(16.0);
@@ -492,11 +516,7 @@ impl EditorApp {
                 egui::Align2::CENTER_CENTER,
                 icon,
                 egui::FontId::proportional(14.0),
-                if selected {
-                    crate::theme::text_bright()
-                } else {
-                    crate::theme::text_dim()
-                },
+                if selected { crate::theme::text_bright() } else { crate::theme::text_dim() },
             );
         }
 
@@ -504,11 +524,15 @@ impl EditorApp {
             self.current_tool = tool;
         }
 
-        response.on_hover_text(format!("{} [{}]", _label, match tool {
-            EditorTool::Translate => "W",
-            EditorTool::Rotate => "E",
-            EditorTool::Scale => "R",
-        }));
+        response.on_hover_text(format!(
+            "{} [{}]",
+            _label,
+            match tool {
+                EditorTool::Translate => "W",
+                EditorTool::Rotate => "E",
+                EditorTool::Scale => "R",
+            }
+        ));
     }
 
     fn build_hierarchy_panel(&mut self, ctx: &egui::Context) {
@@ -532,27 +556,25 @@ impl EditorApp {
                 });
                 ui.add_space(6.0);
 
-                egui::ScrollArea::vertical()
-                    .id_salt("hierarchy_scroll")
-                    .show(ui, |ui| {
-                        if self.scene_objects.is_empty() {
-                            ui.add_space(8.0);
-                            ui.label(
-                                egui::RichText::new("  (empty scene)")
-                                    .color(crate::theme::text_dim())
-                                    .size(12.0),
-                            );
-                            return;
-                        }
+                egui::ScrollArea::vertical().id_salt("hierarchy_scroll").show(ui, |ui| {
+                    if self.scene_objects.is_empty() {
+                        ui.add_space(8.0);
+                        ui.label(
+                            egui::RichText::new("  (empty scene)")
+                                .color(crate::theme::text_dim())
+                                .size(12.0),
+                        );
+                        return;
+                    }
 
-                        for (i, obj) in self.scene_objects.iter().enumerate() {
-                            let is_selected = self.selected_index == Some(i);
-                            let response = self.draw_hierarchy_item(ui, obj, is_selected, i == 0);
-                            if response.clicked() {
-                                self.selected_index = Some(i);
-                            }
+                    for (i, obj) in self.scene_objects.iter().enumerate() {
+                        let is_selected = self.selected_index == Some(i);
+                        let response = self.draw_hierarchy_item(ui, obj, is_selected, i == 0);
+                        if response.clicked() {
+                            self.selected_index = Some(i);
                         }
-                    });
+                    }
+                });
             });
     }
 
@@ -573,10 +595,8 @@ impl EditorApp {
 
         let label_text = format!("{}  {}", icon, obj.name);
 
-        let (rect, response) = ui.allocate_exact_size(
-            egui::vec2(ui.available_width(), 24.0),
-            egui::Sense::click(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 24.0), egui::Sense::click());
 
         if ui.is_rect_visible(rect) {
             let visuals = if selected {
@@ -636,13 +656,11 @@ impl EditorApp {
 
                 if let Some(idx) = self.selected_index {
                     let obj = &self.scene_objects[idx];
-                    egui::ScrollArea::vertical()
-                        .id_salt("inspector_scroll")
-                        .show(ui, |ui| {
-                            self.draw_inspector_header(ui, obj);
-                            self.draw_inspector_transform(ui, obj);
-                            self.draw_inspector_bounds(ui, obj);
-                        });
+                    egui::ScrollArea::vertical().id_salt("inspector_scroll").show(ui, |ui| {
+                        self.draw_inspector_header(ui, obj);
+                        self.draw_inspector_transform(ui, obj);
+                        self.draw_inspector_bounds(ui, obj);
+                    });
                 } else {
                     ui.add_space(12.0);
                     ui.label(
@@ -651,9 +669,11 @@ impl EditorApp {
                             .size(12.0),
                     );
                     ui.label(
-                        egui::RichText::new("Click an object in the viewport\nor the Hierarchy panel.")
-                            .color(crate::theme::text_dim())
-                            .size(11.0),
+                        egui::RichText::new(
+                            "Click an object in the viewport\nor the Hierarchy panel.",
+                        )
+                        .color(crate::theme::text_dim())
+                        .size(11.0),
                     );
                 }
             });
@@ -676,7 +696,8 @@ impl EditorApp {
         let bg = crate::theme::faint_bg_color();
         let corner = egui::CornerRadius::same(4);
 
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 80.0), egui::Sense::hover());
+        let (rect, _) =
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 80.0), egui::Sense::hover());
         ui.painter().rect(rect, corner, bg, egui::Stroke::NONE, egui::StrokeKind::Inside);
 
         let pos = obj.transform.w_axis.truncate();
@@ -717,7 +738,8 @@ impl EditorApp {
         let bg = crate::theme::faint_bg_color();
         let corner = egui::CornerRadius::same(4);
 
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 60.0), egui::Sense::hover());
+        let (rect, _) =
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 60.0), egui::Sense::hover());
         ui.painter().rect(rect, corner, bg, egui::Stroke::NONE, egui::StrokeKind::Inside);
 
         let content_rect = rect.shrink(8.0);
@@ -790,7 +812,12 @@ impl ApplicationHandler for EditorApp {
         ))
         .expect("failed to create renderer");
 
-        init_scene(&mut renderer, &self.asset_server, &mut self.scene_objects, &mut self.gizmo_mesh_start);
+        init_scene(
+            &mut renderer,
+            &self.asset_server,
+            &mut self.scene_objects,
+            &mut self.gizmo_mesh_start,
+        );
 
         let egui_winit_state = egui_winit::State::new(
             self.egui_ctx.clone(),
@@ -849,19 +876,24 @@ fn init_scene(
     *gizmo_mesh_start = renderer.mesh_count();
     let hide = Mat4::from_scale(Vec3::ZERO);
     for part in [
-        &gizmo.x_shaft, &gizmo.x_tip,
-        &gizmo.y_shaft, &gizmo.y_tip,
-        &gizmo.z_shaft, &gizmo.z_tip,
-        &gizmo.rot_x, &gizmo.rot_y, &gizmo.rot_z,
-        &gizmo.scale_x, &gizmo.scale_y, &gizmo.scale_z,
+        &gizmo.x_shaft,
+        &gizmo.x_tip,
+        &gizmo.y_shaft,
+        &gizmo.y_tip,
+        &gizmo.z_shaft,
+        &gizmo.z_tip,
+        &gizmo.rot_x,
+        &gizmo.rot_y,
+        &gizmo.rot_z,
+        &gizmo.scale_x,
+        &gizmo.scale_y,
+        &gizmo.scale_z,
     ] {
         renderer.add_mesh(part, &hide);
     }
 
     let sphere_asset = schiro_assets::procedural::create_sphere(1.0, 32, 16);
-    let sphere = asset_server
-        .load("procedural://sphere", |_| Ok(sphere_asset.clone()))
-        .unwrap();
+    let sphere = asset_server.load("procedural://sphere", |_| Ok(sphere_asset.clone())).unwrap();
 
     let sphere_mesh = asset_to_render_mesh(&sphere);
     let transform = Mat4::from_translation(Vec3::new(0.0, 1.5, 0.0));
@@ -869,12 +901,7 @@ fn init_scene(
 
     let mesh_index = renderer.mesh_count();
     renderer.add_mesh(&sphere_mesh, &transform);
-    scene.push(SceneObject {
-        name: "Sphere".into(),
-        mesh_index,
-        transform,
-        aabb,
-    });
+    scene.push(SceneObject { name: "Sphere".into(), mesh_index, transform, aabb });
 
     let grid_mesh = schiro_render::Mesh::grid(10, 10, 1.0);
     let grid_transform = Mat4::IDENTITY;
@@ -895,23 +922,12 @@ fn init_scene(
 fn asset_to_render_mesh(asset: &MeshAsset) -> schiro_render::Mesh {
     let mut mesh = schiro_render::Mesh::new(&asset.name);
     for i in 0..asset.positions.len() {
-        let tangent = if i < asset.tangents.len() {
-            asset.tangents[i]
-        } else {
-            [1.0, 0.0, 0.0, 1.0]
-        };
+        let tangent =
+            if i < asset.tangents.len() { asset.tangents[i] } else { [1.0, 0.0, 0.0, 1.0] };
         mesh.vertices.push(schiro_render::mesh::Vertex {
             position: asset.positions[i],
-            normal: if i < asset.normals.len() {
-                asset.normals[i]
-            } else {
-                [0.0, 1.0, 0.0]
-            },
-            uv: if i < asset.uvs.len() {
-                asset.uvs[i]
-            } else {
-                [0.0, 0.0]
-            },
+            normal: if i < asset.normals.len() { asset.normals[i] } else { [0.0, 1.0, 0.0] },
+            uv: if i < asset.uvs.len() { asset.uvs[i] } else { [0.0, 0.0] },
             tangent,
         });
     }
@@ -937,8 +953,17 @@ fn ring_aabb(center: Vec3, axis: Vec3, radius: f32, thickness: f32) -> Aabb {
     let half = Vec3::splat(radius + thickness);
     let mut min = center - half;
     let mut max = center + half;
-    if axis == Vec3::X { min.x = center.x - thickness; max.x = center.x + thickness; }
-    if axis == Vec3::Y { min.y = center.y - thickness; max.y = center.y + thickness; }
-    if axis == Vec3::Z { min.z = center.z - thickness; max.z = center.z + thickness; }
+    if axis == Vec3::X {
+        min.x = center.x - thickness;
+        max.x = center.x + thickness;
+    }
+    if axis == Vec3::Y {
+        min.y = center.y - thickness;
+        max.y = center.y + thickness;
+    }
+    if axis == Vec3::Z {
+        min.z = center.z - thickness;
+        max.z = center.z + thickness;
+    }
     Aabb::new(min, max)
 }
