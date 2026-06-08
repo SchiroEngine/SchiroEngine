@@ -1,0 +1,19 @@
+[package]
+name = "schiro-input"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+schiro-core.workspace = true
+schiro-ecs.workspace = true
+
+winit.workspace = true
+glam.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

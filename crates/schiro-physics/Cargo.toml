@@ -1,0 +1,20 @@
+[package]
+name = "schiro-physics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+schiro-core.workspace = true
+schiro-ecs.workspace = true
+bevy_ecs.workspace = true
+
+rapier3d.workspace = true
+rapier2d.workspace = true
+glam.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

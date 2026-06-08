@@ -1,0 +1,80 @@
+[workspace]
+members = [
+    "crates/schiro-core",
+    "crates/schiro-ecs",
+    "crates/schiro-render",
+    "crates/schiro-assets",
+    "crates/schiro-audio",
+    "crates/schiro-physics",
+    "crates/schiro-input",
+    "crates/schiro-editor",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/gabrielhamel/SchiroEngine"
+authors = ["Gabriel Hamel"]
+
+[workspace.lints.rust]
+unused_must_use = "warn"
+
+[workspace.lints.clippy]
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+
+[workspace.dependencies]
+# ── Internal crates ──
+schiro-core = { path = "crates/schiro-core" }
+schiro-ecs = { path = "crates/schiro-ecs" }
+schiro-render = { path = "crates/schiro-render" }
+schiro-assets = { path = "crates/schiro-assets" }
+schiro-audio = { path = "crates/schiro-audio" }
+schiro-physics = { path = "crates/schiro-physics" }
+schiro-input = { path = "crates/schiro-input" }
+
+# ── Math ──
+glam = "0.29"
+
+# ── ECS ──
+bevy_ecs = "0.15"
+bevy_hierarchy = "0.15"
+
+# ── Rendering ──
+wgpu = "24.0"
+winit = "0.30"
+raw-window-handle = "0.6"
+
+# ── Editor UI ──
+egui = "0.31"
+egui-wgpu = "0.31"
+egui-winit = "0.31"
+
+# ── Audio ──
+kira = "0.9"
+
+# ── Physics ──
+rapier3d = "0.22"
+rapier2d = "0.22"
+
+# ── Asset loading ──
+gltf = "1.4"
+base64 = "0.22"
+
+# ── Utilities ──
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+parking_lot = "0.12"
+pollster = "0.3"
+slotmap = "1.0"
+thiserror = "2.0"
+uuid = { version = "1.0", features = ["v4"] }
+serde = { version = "1.0", features = ["derive"] }
+bytemuck = { version = "1.0", features = ["derive"] }
+image = "0.25"
+tokio = { version = "1.0", features = ["full"] }
+async-channel = "2.0"
+futures-util = "0.3"

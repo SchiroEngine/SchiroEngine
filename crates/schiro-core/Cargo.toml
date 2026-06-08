@@ -1,0 +1,21 @@
+[package]
+name = "schiro-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+glam.workspace = true
+parking_lot.workspace = true
+slotmap.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+serde.workspace = true
+bytemuck.workspace = true
+
+[lints]
+workspace = true
