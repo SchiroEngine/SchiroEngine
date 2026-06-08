@@ -421,32 +421,94 @@ impl EditorApp {
                     .inner_margin(egui::vec2(8.0, 2.0)),
             )
             .show(_ctx, |ui| {
-                egui::menu::bar(ui, |ui| {
-            ui.style_mut().visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(4);
-            ui.style_mut().visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(4);
-            ui.style_mut().visuals.widgets.active.corner_radius = egui::CornerRadius::same(4);
+                ui.horizontal(|ui| {
+                    egui::menu::bar(ui, |ui| {
+                        ui.style_mut().visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(4);
+                        ui.style_mut().visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(4);
+                        ui.style_mut().visuals.widgets.active.corner_radius = egui::CornerRadius::same(4);
 
-                    ui.menu_button("File", |ui| {
-                        if ui.button("New Project").clicked() {}
-                        if ui.button("Open Project").clicked() {}
-                        ui.separator();
-                        if ui.button("Exit").clicked() {
-                            std::process::exit(0);
-                        }
+                        ui.menu_button("File", |ui| {
+                            if ui.button("New Project").clicked() {}
+                            if ui.button("Open Project").clicked() {}
+                            ui.separator();
+                            if ui.button("Exit").clicked() {
+                                std::process::exit(0);
+                            }
+                        });
+                        ui.menu_button("Edit", |ui| {
+                            if ui.button("Undo").clicked() {}
+                            if ui.button("Redo").clicked() {}
+                        });
+                        ui.menu_button("View", |ui| {
+                            if ui.button("Asset Browser").clicked() {}
+                            if ui.button("Hierarchy").clicked() {}
+                        });
+                        ui.menu_button("Help", |ui| {
+                            if ui.button("About").clicked() {}
+                        });
                     });
-                    ui.menu_button("Edit", |ui| {
-                        if ui.button("Undo").clicked() {}
-                        if ui.button("Redo").clicked() {}
-                    });
-                    ui.menu_button("View", |ui| {
-                        if ui.button("Asset Browser").clicked() {}
-                        if ui.button("Hierarchy").clicked() {}
-                    });
-                    ui.menu_button("Help", |ui| {
-                        if ui.button("About").clicked() {}
-                    });
+
+                    ui.add_space(16.0);
+                    ui.separator();
+                    ui.add_space(4.0);
+
+                    self.draw_tool_button(ui, "\u{2194}", "Translate", EditorTool::Translate);
+                    self.draw_tool_button(ui, "\u{21BB}", "Rotate", EditorTool::Rotate);
+                    self.draw_tool_button(ui, "\u{25A1}", "Scale", EditorTool::Scale);
                 });
             });
+    }
+
+    fn draw_tool_button(&mut self, ui: &mut egui::Ui, icon: &str, _label: &str, tool: EditorTool) {
+        let selected = self.current_tool == tool;
+        let mut visuals = ui.style().visuals.widgets.inactive.clone();
+        if selected {
+            visuals.bg_fill = crate::theme::accent_color();
+            visuals.fg_stroke = egui::Stroke::new(1.5, crate::theme::text_bright());
+        }
+        visuals.corner_radius = egui::CornerRadius::same(4);
+
+        let (rect, response) = ui.allocate_exact_size(egui::vec2(32.0, 22.0), egui::Sense::click());
+
+        if ui.is_rect_visible(rect) {
+            let fill = if response.hovered() && !selected {
+                ui.style().visuals.widgets.hovered.bg_fill
+            } else {
+                visuals.bg_fill
+            };
+            ui.painter().rect(
+                rect,
+                egui::CornerRadius::same(4),
+                fill,
+                if selected {
+                    egui::Stroke::NONE
+                } else {
+                    ui.style().visuals.widgets.inactive.bg_stroke
+                },
+                egui::StrokeKind::Inside,
+            );
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                icon,
+                egui::FontId::proportional(14.0),
+                if selected {
+                    crate::theme::text_bright()
+                } else {
+                    crate::theme::text_dim()
+                },
+            );
+        }
+
+        if response.clicked() {
+            self.current_tool = tool;
+        }
+
+        response.on_hover_text(format!("{} [{}]", _label, match tool {
+            EditorTool::Translate => "W",
+            EditorTool::Rotate => "E",
+            EditorTool::Scale => "R",
+        }));
     }
 
     fn build_hierarchy_panel(&mut self, ctx: &egui::Context) {
