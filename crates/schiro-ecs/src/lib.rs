@@ -10,10 +10,12 @@ pub use bevy_ecs::{
     world::World,
 };
 pub use components::*;
+pub use systems::Time;
 
 use tracing::info;
 
 pub fn init(world: &mut World) {
     info!("initializing ECS world");
     world.init_resource::<schedule::SystemOrder>();
+    world.init_resource::<Time>();
 }

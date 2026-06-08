@@ -3569,6 +3569,7 @@ dependencies = [
 name = "schiro-editor"
 version = "0.1.0"
 dependencies = [
+ "bevy_ecs",
  "egui",
  "egui-wgpu",
  "egui-winit",

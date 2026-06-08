@@ -68,6 +68,34 @@ impl Default for GlobalTransform {
 #[derive(Component, Debug, Clone)]
 pub struct Name(pub String);
 
+#[derive(Component, Debug, Clone)]
+pub struct MeshRenderer {
+    pub mesh_handle: Option<usize>,
+    pub visible: bool,
+}
+
+impl Default for MeshRenderer {
+    fn default() -> Self {
+        Self {
+            mesh_handle: None,
+            visible: true,
+        }
+    }
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct Rotator {
+    pub speed: Vec3,
+}
+
+impl Default for Rotator {
+    fn default() -> Self {
+        Self {
+            speed: Vec3::new(0.0, 1.0, 0.0),
+        }
+    }
+}
+
 #[derive(Bundle)]
 pub struct SpatialBundle {
     pub transform: Transform,

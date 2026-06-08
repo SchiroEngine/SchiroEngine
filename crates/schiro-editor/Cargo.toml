@@ -18,6 +18,7 @@ schiro-assets.workspace = true
 schiro-audio.workspace = true
 schiro-physics.workspace = true
 schiro-input.workspace = true
+bevy_ecs.workspace = true
 
 egui.workspace = true
 egui-wgpu.workspace = true
