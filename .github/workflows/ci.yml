@@ -43,8 +43,14 @@ jobs:
         run: cargo clippy --workspace --all-targets --all-features
 
   check:
-    name: cargo check
+    name: cargo check (${{ matrix.target }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux system dependencies
@@ -56,9 +62,16 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-check-${{ hashFiles('**/Cargo.lock') }}
-      - name: cargo check
+          key: ${{ runner.os }}-check-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: cargo check (linux)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: cargo check --workspace --all-targets
+      - name: cargo check (windows)
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        run: |
+          sudo apt-get install -y mingw-w64
+          rustup target add x86_64-pc-windows-gnu
+          cargo check --workspace --all-targets --target x86_64-pc-windows-gnu
 
   test:
     name: cargo test
