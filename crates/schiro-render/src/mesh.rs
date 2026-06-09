@@ -52,6 +52,13 @@ pub struct GpuMesh {
     pub model_buffer: wgpu::Buffer,
     /// Bind group used to bind the model uniform to the shader.
     pub model_bind_group: wgpu::BindGroup,
+    /// Optional material bind group (slot 3 in the PBR pipeline).
+    ///
+    /// When `None`, the caller is responsible for binding a fallback
+    /// material before the draw call. The viewport registers a
+    /// default material so that untextured meshes still render
+    /// correctly.
+    pub material_bind_group: Option<wgpu::BindGroup>,
 }
 
 impl GpuMesh {
@@ -102,7 +109,14 @@ impl GpuMesh {
             index_count: mesh.indices.len() as u32,
             model_buffer,
             model_bind_group,
+            material_bind_group: None,
         }
+    }
+
+    /// Attaches a material bind group to this mesh. The bind group is
+    /// bound automatically by [`GpuMesh::draw`] when present.
+    pub fn set_material_bind_group(&mut self, bg: wgpu::BindGroup) {
+        self.material_bind_group = Some(bg);
     }
 
     /// Updates the model uniform of this mesh in place.
@@ -116,10 +130,17 @@ impl GpuMesh {
     }
 
     /// Binds the mesh's buffers and issues a single indexed draw call.
+    ///
+    /// The optional material bind group is bound to slot 3 when set.
+    /// When `None`, the caller is expected to have already bound a
+    /// material bind group on slot 3.
     pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
         render_pass.set_bind_group(1, &self.model_bind_group, &[]);
+        if let Some(ref bg) = self.material_bind_group {
+            render_pass.set_bind_group(3, bg, &[]);
+        }
         render_pass.draw_indexed(0..self.index_count, 0, 0..1);
     }
 }

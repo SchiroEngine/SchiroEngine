@@ -1,10 +1,51 @@
 //! PBR render pipeline and bind group layouts.
 //!
 //! Defines the [`PbrPipeline`] struct, which holds the wgpu pipeline
-//! object along with the three bind group layouts (camera, model and
-//! light) consumed by the shader.
+//! object along with the four bind group layouts (camera, model,
+//! light and material) consumed by the shader.
+//!
+//! The material bind group (slot 3) owns the per-mesh textures
+//! (base color, normal map, metallic-roughness), the environment
+//! maps (prefilter cubemap and irradiance cubemap) and the BRDF
+//! integration LUT, plus a small uniform buffer with material
+//! constants.
 
-use wgpu::BindGroupLayout;
+use bytemuck::{Pod, Zeroable};
+
+/// CPU side layout of the material uniform block consumed by the PBR
+/// shader.
+///
+/// Matches the `MaterialParams` struct in `assets/shaders/pbr.wgsl`.
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
+#[repr(C)]
+pub struct MaterialParams {
+    /// Base color, in linear space. Ignored when `has_base_color_tex`
+    /// is non-zero.
+    pub base_color: [f32; 4],
+    /// Emissive contribution added on top of the lit surface.
+    pub emissive: [f32; 4],
+    /// Roughness factor in `[0.04, 1.0]`.
+    pub roughness: f32,
+    /// Metallic factor in `[0, 1]`.
+    pub metallic: f32,
+    /// `1.0` when the base color texture is bound, `0.0` otherwise.
+    pub has_base_color_tex: f32,
+    /// `1.0` when the normal map is bound, `0.0` otherwise.
+    pub has_normal_tex: f32,
+}
+
+impl Default for MaterialParams {
+    fn default() -> Self {
+        Self {
+            base_color: [1.0, 1.0, 1.0, 1.0],
+            emissive: [0.0, 0.0, 0.0, 1.0],
+            roughness: 0.5,
+            metallic: 0.0,
+            has_base_color_tex: 0.0,
+            has_normal_tex: 0.0,
+        }
+    }
+}
 
 /// Render pipeline object paired with the bind group layouts it
 /// expects.
@@ -17,6 +58,9 @@ pub struct PbrPipeline {
     pub model_layout: wgpu::BindGroupLayout,
     /// Bind group layout for the global light uniform buffer.
     pub light_layout: wgpu::BindGroupLayout,
+    /// Bind group layout for the per-mesh material: textures, samplers
+    /// and the [`MaterialParams`] uniform.
+    pub material_layout: wgpu::BindGroupLayout,
 }
 
 impl PbrPipeline {
@@ -75,9 +119,133 @@ impl PbrPipeline {
                 }],
             });
 
+        // Per-mesh material bind group. 13 entries: 4 textures, 4
+        // samplers, 1 environment cubemap, 1 environment sampler, 1
+        // irradiance cubemap, 1 irradiance sampler, 1 BRDF LUT
+        // texture, 1 BRDF LUT sampler, and the MaterialParams uniform.
+        let material_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Material BGL"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 5,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 6,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::Cube,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 7,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 8,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::Cube,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 9,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 10,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 11,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 12,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: wgpu::BufferSize::new(
+                                std::mem::size_of::<MaterialParams>() as u64,
+                            ),
+                        },
+                        count: None,
+                    },
+                ],
+            });
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("PBR Pipeline Layout"),
-            bind_group_layouts: &[&camera_layout, &model_layout, &light_layout],
+            bind_group_layouts: &[
+                &camera_layout,
+                &model_layout,
+                &light_layout,
+                &material_layout,
+            ],
             push_constant_ranges: &[],
         });
 
@@ -130,11 +298,7 @@ impl PbrPipeline {
             camera_layout,
             model_layout,
             light_layout,
+            material_layout,
         }
     }
 }
-
-// `BindGroupLayout` re-export kept here so that downstream code that
-// imports the module path does not need a separate `wgpu` import.
-#[allow(unused_imports)]
-use BindGroupLayout as _BindGroupLayoutReexport;

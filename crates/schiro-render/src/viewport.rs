@@ -6,6 +6,7 @@
 //! frame inside an egui panel.
 
 use crate::camera::{CameraUniform, LightUniform};
+use crate::environment::Environment;
 use crate::mesh::GpuMesh;
 use crate::pipeline::PbrPipeline;
 
@@ -31,6 +32,9 @@ pub struct ViewportRenderer {
     pub light_buffer: wgpu::Buffer,
     /// Bind group for [`ViewportRenderer::light_buffer`].
     pub light_bind_group: wgpu::BindGroup,
+    /// IBL resources (prefilter / irradiance / BRDF LUT) used by the
+    /// PBR shader and shared by every mesh.
+    pub environment: Environment,
     /// egui texture id for the color attachment, if it has been
     /// registered.
     pub egui_texture_id: Option<egui::TextureId>,
@@ -113,6 +117,8 @@ impl ViewportRenderer {
         let light = LightUniform::default();
         queue.write_buffer(&light_buffer, 0, bytemuck::bytes_of(&light));
 
+        let environment = Environment::new(device, queue, &pipeline.material_layout);
+
         Self {
             color_texture,
             color_view,
@@ -124,6 +130,7 @@ impl ViewportRenderer {
             camera_bind_group,
             light_buffer,
             light_bind_group,
+            environment,
             egui_texture_id: None,
         }
     }
@@ -213,6 +220,10 @@ impl ViewportRenderer {
             pass.set_pipeline(&self.pipeline.pipeline);
             pass.set_bind_group(0, &self.camera_bind_group, &[]);
             pass.set_bind_group(2, &self.light_bind_group, &[]);
+            // Bind the default material bind group (slot 3) once.
+            // Meshes that own a per-mesh material bind group will
+            // override it inside [`GpuMesh::draw`].
+            pass.set_bind_group(3, &self.environment.bind_group, &[]);
 
             for mesh in meshes {
                 mesh.draw(&mut pass);

@@ -20,9 +20,12 @@
 //! - [`graph`] — placeholder for the upcoming frame graph.
 //! - [`gizmo`] — translate / rotate / scale gizmo meshes.
 //! - [`egui_renderer`] — re-export of `egui_wgpu` for the editor UI.
+//! - [`environment`] — IBL resources: prefilter / irradiance cubemaps
+//!   and BRDF integration LUT.
 
 pub mod camera;
 pub mod device;
+pub mod environment;
 pub mod egui_renderer;
 pub mod gizmo;
 pub mod graph;
