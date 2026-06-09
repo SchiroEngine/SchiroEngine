@@ -18,10 +18,7 @@ pub struct Aabb {
 
 impl Aabb {
     /// Box with both corners at the origin. Useful as a default value.
-    pub const ZERO: Self = Self {
-        min: Vec3::ZERO,
-        max: Vec3::ZERO,
-    };
+    pub const ZERO: Self = Self { min: Vec3::ZERO, max: Vec3::ZERO };
 
     /// Builds a box from explicit minimum and maximum corners.
     pub fn new(min: Vec3, max: Vec3) -> Self {
@@ -74,10 +71,7 @@ impl Aabb {
             Vec3::new(self.min.x, self.max.y, self.max.z),
             Vec3::new(self.max.x, self.max.y, self.max.z),
         ];
-        let t: Vec<Vec3> = corners
-            .iter()
-            .map(|c| mat.transform_point3(*c))
-            .collect();
+        let t: Vec<Vec3> = corners.iter().map(|c| mat.transform_point3(*c)).collect();
         let mut min = Vec3::splat(f32::MAX);
         let mut max = Vec3::splat(f32::MIN);
         for p in t {
@@ -100,10 +94,7 @@ pub struct Ray {
 impl Ray {
     /// Builds a ray and normalizes the direction.
     pub fn new(origin: Vec3, direction: Vec3) -> Self {
-        Self {
-            origin,
-            direction: direction.normalize(),
-        }
+        Self { origin, direction: direction.normalize() }
     }
 
     /// Returns the point at distance `t` along the ray.

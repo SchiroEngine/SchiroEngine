@@ -84,12 +84,7 @@ impl OrbitCamera {
     }
 
     /// Converts a screen space position into a world space [`Ray`].
-    pub fn screen_to_ray(
-        &self,
-        screen_pos: Vec2,
-        viewport_size: Vec2,
-        aspect: f32,
-    ) -> Ray {
+    pub fn screen_to_ray(&self, screen_pos: Vec2, viewport_size: Vec2, aspect: f32) -> Ray {
         let view = self.view_matrix();
         let proj = self.projection_matrix(aspect);
         let inv_vp = (proj * view).inverse();

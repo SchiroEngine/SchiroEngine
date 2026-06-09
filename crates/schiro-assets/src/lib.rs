@@ -25,12 +25,10 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-use tracing::info;
-
 pub use handle::Handle;
 pub use loader::AssetLoadError;
-
+use parking_lot::RwLock;
+use tracing::info;
 pub use types::{MaterialAsset, MeshAsset, TextureAsset};
 
 /// Trait implemented by every type that can be stored in an
@@ -56,9 +54,7 @@ impl AssetServer {
     /// Creates a new, empty asset server.
     pub fn new() -> Self {
         info!("asset server initialized");
-        Self {
-            cache: RwLock::new(HashMap::new()),
-        }
+        Self { cache: RwLock::new(HashMap::new()) }
     }
 
     /// Loads (or fetches from cache) the asset at `path`.
@@ -86,9 +82,7 @@ impl AssetServer {
         info!("loading asset: {} ({})", path.display(), T::type_name());
         let asset = loader(&path)?;
         let arc: Arc<T> = Arc::new(asset);
-        self.cache
-            .write()
-            .insert(key, arc.clone() as Arc<dyn std::any::Any + Send + Sync>);
+        self.cache.write().insert(key, arc.clone() as Arc<dyn std::any::Any + Send + Sync>);
         Ok(arc)
     }
 

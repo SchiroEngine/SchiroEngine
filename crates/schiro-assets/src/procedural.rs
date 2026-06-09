@@ -27,10 +27,7 @@ pub fn create_sphere(radius: f32, segments: u32, rings: u32) -> MeshAsset {
 
             mesh.positions.push([x, y, z]);
             mesh.normals.push(Vec3::new(x, y, z).normalize().to_array());
-            mesh.uvs.push([
-                seg as f32 / segments as f32,
-                ring as f32 / rings as f32,
-            ]);
+            mesh.uvs.push([seg as f32 / segments as f32, ring as f32 / rings as f32]);
         }
     }
 

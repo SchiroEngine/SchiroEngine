@@ -25,8 +25,8 @@
 
 pub mod camera;
 pub mod device;
-pub mod environment;
 pub mod egui_renderer;
+pub mod environment;
 pub mod gizmo;
 pub mod graph;
 pub mod light;
@@ -41,8 +41,8 @@ use std::sync::Arc;
 
 use camera::CameraUniform;
 pub use gizmo::GizmoMeshes;
-pub use mesh::Mesh;
 use mesh::GpuMesh;
+pub use mesh::Mesh;
 pub use surface::create_surface;
 pub use viewport::ViewportRenderer;
 
@@ -114,7 +114,12 @@ impl Renderer {
         };
         surface.configure(&device, &config);
 
-        tracing::info!("wgpu device ready, format: {:?}, size: {}x{}", config.format, size.0, size.1);
+        tracing::info!(
+            "wgpu device ready, format: {:?}, size: {}x{}",
+            config.format,
+            size.0,
+            size.1
+        );
 
         let egui_renderer = egui_wgpu::Renderer::new(&device, config.format, None, 1, false);
 
@@ -187,16 +192,8 @@ impl Renderer {
         egui_output: egui::FullOutput,
         camera_uniform: &CameraUniform,
     ) -> Result<(), wgpu::SurfaceError> {
-        let Self {
-            surface,
-            device,
-            queue,
-            config: _,
-            size,
-            egui_renderer,
-            viewport,
-            meshes,
-        } = self;
+        let Self { surface, device, queue, config: _, size, egui_renderer, viewport, meshes } =
+            self;
 
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("Schiro Command Encoder"),
@@ -213,9 +210,7 @@ impl Renderer {
         }
 
         let output = surface.get_current_texture()?;
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         {
             let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -258,10 +253,7 @@ impl Renderer {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
+                    ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
                 })],
                 depth_stencil_attachment: None,
                 timestamp_writes: None,

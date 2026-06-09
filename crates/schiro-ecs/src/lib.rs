@@ -7,7 +7,7 @@
 //! # Quick start
 //!
 //! ```
-//! use schiro_ecs::{World, init};
+//! use schiro_ecs::{init, World};
 //!
 //! let mut world = World::new();
 //! init(&mut world);
@@ -19,14 +19,11 @@ pub mod components;
 pub mod schedule;
 pub mod systems;
 
-pub use bevy_ecs::{
-    self as engine,
-    system::Resource,
-    world::World,
-};
+pub use bevy_ecs::system::Resource;
+pub use bevy_ecs::world::World;
+pub use bevy_ecs::{self as engine};
 pub use components::*;
 pub use systems::Time;
-
 use tracing::info;
 
 /// Initializes the default SchiroEngine resources into the supplied world.

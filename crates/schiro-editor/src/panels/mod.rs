@@ -34,18 +34,26 @@ impl EditorApp {
                     .stroke(egui::Stroke::new(1.0_f32, crate::theme::faint_bg_color()))
                     .inner_margin(egui::Margin::same(0));
                 vf.show(ui, |ui| {
-                    let tex_id = self.renderer.as_ref()
+                    let tex_id = self
+                        .renderer
+                        .as_ref()
                         .and_then(|r| r.viewport.as_ref())
                         .and_then(|vp| vp.egui_texture_id);
-                    let vp_size = self.renderer.as_ref()
+                    let vp_size = self
+                        .renderer
+                        .as_ref()
                         .and_then(|r| r.viewport.as_ref())
-                        .map(|vp| vp.size).unwrap_or((1280, 720));
+                        .map(|vp| vp.size)
+                        .unwrap_or((1280, 720));
                     if tex_id.is_some() {
                         self.viewport_panel.show(ui, tex_id, vp_size);
                     } else {
                         ui.centered_and_justified(|ui| {
-                            ui.label(egui::RichText::new("Viewport")
-                                .color(crate::theme::text_dim()).size(16.0));
+                            ui.label(
+                                egui::RichText::new("Viewport")
+                                    .color(crate::theme::text_dim())
+                                    .size(16.0),
+                            );
                         });
                     }
                 });

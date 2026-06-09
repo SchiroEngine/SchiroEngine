@@ -174,11 +174,7 @@ pub struct Mesh {
 impl Mesh {
     /// Builds an empty mesh with the supplied name.
     pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            vertices: Vec::new(),
-            indices: Vec::new(),
-            name: name.into(),
-        }
+        Self { vertices: Vec::new(), indices: Vec::new(), name: name.into() }
     }
 
     /// Builds a unit cube centered on `(0, 0.5, 0)`.
@@ -255,10 +251,7 @@ impl Mesh {
                 mesh.vertices.push(Vertex {
                     position: [x, 0.0, z],
                     normal: n,
-                    uv: [
-                        c as f32 / cols as f32,
-                        r as f32 / rows as f32,
-                    ],
+                    uv: [c as f32 / cols as f32, r as f32 / rows as f32],
                     tangent: t,
                 });
             }

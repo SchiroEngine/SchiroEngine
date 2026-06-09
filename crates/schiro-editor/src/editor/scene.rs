@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::*;
 use glam::{Mat4, Vec3};
 use schiro_assets::types::MeshAsset;
-use schiro_ecs::{components::{MeshRenderer, Rotator, Transform}, World};
+use schiro_ecs::components::{MeshRenderer, Rotator, Transform};
+use schiro_ecs::World;
 use schiro_render::Renderer;
 use tracing::info;
 
@@ -29,10 +30,21 @@ pub fn init_scene(
     *gizmo_start = renderer.mesh_count();
     let hide = Mat4::from_scale(Vec3::ZERO);
     for part in [
-        &gizmo.x_shaft, &gizmo.x_tip, &gizmo.y_shaft, &gizmo.y_tip, &gizmo.z_shaft, &gizmo.z_tip,
-        &gizmo.rot_x, &gizmo.rot_y, &gizmo.rot_z,
-        &gizmo.scale_x, &gizmo.scale_y, &gizmo.scale_z,
-    ] { renderer.add_mesh(part, &hide); }
+        &gizmo.x_shaft,
+        &gizmo.x_tip,
+        &gizmo.y_shaft,
+        &gizmo.y_tip,
+        &gizmo.z_shaft,
+        &gizmo.z_tip,
+        &gizmo.rot_x,
+        &gizmo.rot_y,
+        &gizmo.rot_z,
+        &gizmo.scale_x,
+        &gizmo.scale_y,
+        &gizmo.scale_z,
+    ] {
+        renderer.add_mesh(part, &hide);
+    }
 
     let sphere_asset = schiro_assets::procedural::create_sphere(1.0, 32, 16);
     let sphere = asset_server.load("proc://sphere", |_| Ok(sphere_asset.clone())).unwrap();
@@ -41,25 +53,31 @@ pub fn init_scene(
     let mi = renderer.mesh_count();
     renderer.add_mesh(&sm, &t);
 
-    let entity = world.spawn((
-        schiro_ecs::components::Name("Sphere".into()),
-        Transform { translation: Vec3::new(0.0, 1.5, 0.0), ..Default::default() },
-        schiro_ecs::components::GlobalTransform::default(),
-        MeshRenderer { mesh_handle: Some(mi), visible: true },
-        Rotator { speed: Vec3::new(0.0, 1.5, 0.0) },
-    )).id();
-    entities.push(entity); mesh_map.insert(entity, mi);
+    let entity = world
+        .spawn((
+            schiro_ecs::components::Name("Sphere".into()),
+            Transform { translation: Vec3::new(0.0, 1.5, 0.0), ..Default::default() },
+            schiro_ecs::components::GlobalTransform::default(),
+            MeshRenderer { mesh_handle: Some(mi), visible: true },
+            Rotator { speed: Vec3::new(0.0, 1.5, 0.0) },
+        ))
+        .id();
+    entities.push(entity);
+    mesh_map.insert(entity, mi);
 
     let gm = schiro_render::Mesh::grid(10, 10, 1.0);
     let gi = renderer.mesh_count();
     renderer.add_mesh(&gm, &Mat4::IDENTITY);
-    let ge = world.spawn((
-        schiro_ecs::components::Name("Grid".into()),
-        Transform::default(),
-        schiro_ecs::components::GlobalTransform::default(),
-        MeshRenderer { mesh_handle: Some(gi), visible: true },
-    )).id();
-    entities.push(ge); mesh_map.insert(ge, gi);
+    let ge = world
+        .spawn((
+            schiro_ecs::components::Name("Grid".into()),
+            Transform::default(),
+            schiro_ecs::components::GlobalTransform::default(),
+            MeshRenderer { mesh_handle: Some(gi), visible: true },
+        ))
+        .id();
+    entities.push(ge);
+    mesh_map.insert(ge, gi);
 
     info!("scene: {} entities", entities.len());
 }
@@ -91,7 +109,9 @@ pub fn update_gizmo_transforms(
             renderer.update_mesh_transform(idx, if show { &t } else { &hide });
         }
     } else {
-        for i in 0..12 { renderer.update_mesh_transform(gizmo_start + i, &hide); }
+        for i in 0..12 {
+            renderer.update_mesh_transform(gizmo_start + i, &hide);
+        }
     }
 }
 
@@ -100,7 +120,8 @@ pub fn update_gizmo_transforms(
 fn asset_to_render_mesh(asset: &MeshAsset) -> schiro_render::Mesh {
     let mut mesh = schiro_render::Mesh::new(&asset.name);
     for i in 0..asset.positions.len() {
-        let tangent = if i < asset.tangents.len() { asset.tangents[i] } else { [1.0, 0.0, 0.0, 1.0] };
+        let tangent =
+            if i < asset.tangents.len() { asset.tangents[i] } else { [1.0, 0.0, 0.0, 1.0] };
         mesh.vertices.push(schiro_render::mesh::Vertex {
             position: asset.positions[i],
             normal: if i < asset.normals.len() { asset.normals[i] } else { [0.0, 1.0, 0.0] },

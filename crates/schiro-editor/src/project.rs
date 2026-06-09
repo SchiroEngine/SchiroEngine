@@ -14,9 +14,6 @@ pub struct Project {
 impl Project {
     /// Builds a new project with the given name and no path.
     pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            path: PathBuf::new(),
-        }
+        Self { name: name.into(), path: PathBuf::new() }
     }
 }

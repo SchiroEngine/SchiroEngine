@@ -49,10 +49,8 @@ pub fn load_gltf(path: &Path) -> Result<Vec<MeshAsset>, AssetLoadError> {
                 .map(|uv| [uv[0], uv[1]])
                 .collect();
 
-            let indices: Vec<u32> = reader
-                .read_indices()
-                .map(|i| i.into_u32().collect::<Vec<_>>())
-                .unwrap_or_default();
+            let indices: Vec<u32> =
+                reader.read_indices().map(|i| i.into_u32().collect::<Vec<_>>()).unwrap_or_default();
 
             if positions.is_empty() {
                 continue;

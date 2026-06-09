@@ -72,11 +72,8 @@ impl GizmoMeshes {
 fn rotation_ring(radius: f32, normal: [f32; 3], segments: u32) -> Mesh {
     let mut mesh = Mesh::new("rot_ring");
     let n = Vec3::from_array(normal).normalize();
-    let perp1 = if n.x.abs() < 0.9 {
-        Vec3::X.cross(n).normalize()
-    } else {
-        Vec3::Y.cross(n).normalize()
-    };
+    let perp1 =
+        if n.x.abs() < 0.9 { Vec3::X.cross(n).normalize() } else { Vec3::Y.cross(n).normalize() };
     let perp2 = n.cross(perp1);
     let thickness = 0.03;
 
@@ -123,11 +120,8 @@ fn scale_handle(axis: [f32; 3], distance: f32, half: f32) -> Mesh {
     let center = d * distance;
     let mut mesh = Mesh::new("scale_handle");
 
-    let perp1 = if d.x.abs() < 0.9 {
-        Vec3::X.cross(d).normalize()
-    } else {
-        Vec3::Y.cross(d).normalize()
-    };
+    let perp1 =
+        if d.x.abs() < 0.9 { Vec3::X.cross(d).normalize() } else { Vec3::Y.cross(d).normalize() };
     let perp2 = d.cross(perp1);
 
     let corners = [
@@ -141,14 +135,8 @@ fn scale_handle(axis: [f32; 3], distance: f32, half: f32) -> Mesh {
         center - perp1 * half + perp2 * half + d * half * 2.0,
     ];
 
-    let faces = [
-        (0, 1, 2, 3),
-        (4, 7, 6, 5),
-        (0, 4, 5, 1),
-        (1, 5, 6, 2),
-        (2, 6, 7, 3),
-        (3, 7, 4, 0),
-    ];
+    let faces =
+        [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)];
 
     for &(a, b, c, d) in &faces {
         let n = compute_normal(&corners[a], &corners[b], &corners[c]);
@@ -189,12 +177,7 @@ fn axis_box(dir: [f32; 3], length: f32, half_width: f32) -> Mesh {
         -perp1 * half_width + perp2 * half_width,
     ];
 
-    let faces = [
-        (4, 5, 1, 4, 1, 0),
-        (5, 6, 2, 5, 2, 1),
-        (6, 7, 3, 6, 3, 2),
-        (7, 4, 0, 7, 0, 3),
-    ];
+    let faces = [(4, 5, 1, 4, 1, 0), (5, 6, 2, 5, 2, 1), (6, 7, 3, 6, 3, 2), (7, 4, 0, 7, 0, 3)];
 
     for &(a, b, c, d, e, f) in &faces {
         let n = compute_normal(&v[a], &v[b], &v[c]);

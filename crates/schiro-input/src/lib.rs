@@ -33,11 +33,7 @@ pub struct InputState {
 
 impl Default for InputState {
     fn default() -> Self {
-        Self {
-            cursor_position: Vec2::ZERO,
-            cursor_delta: Vec2::ZERO,
-            scroll_delta: Vec2::ZERO,
-        }
+        Self { cursor_position: Vec2::ZERO, cursor_delta: Vec2::ZERO, scroll_delta: Vec2::ZERO }
     }
 }
 
@@ -50,9 +46,7 @@ pub struct InputSystem {
 impl InputSystem {
     /// Builds a new input system with an empty state.
     pub fn new() -> Self {
-        Self {
-            state: RwLock::new(InputState::default()),
-        }
+        Self { state: RwLock::new(InputState::default()) }
     }
 
     /// Feeds a window event into the system. The current implementation

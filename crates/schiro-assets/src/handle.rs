@@ -21,10 +21,7 @@ pub struct Handle<T: Asset> {
 
 impl<T: Asset> Clone for Handle<T> {
     fn clone(&self) -> Self {
-        Self {
-            inner: Arc::clone(&self.inner),
-            _phantom: PhantomData,
-        }
+        Self { inner: Arc::clone(&self.inner), _phantom: PhantomData }
     }
 }
 
@@ -32,18 +29,12 @@ impl<T: Asset> Handle<T> {
     /// Builds an empty handle that is not currently associated with any
     /// asset data.
     pub fn new() -> Self {
-        Self {
-            inner: Arc::new(RwLock::new(None)),
-            _phantom: PhantomData,
-        }
+        Self { inner: Arc::new(RwLock::new(None)), _phantom: PhantomData }
     }
 
     /// Builds a handle that already wraps a fully loaded asset.
     pub fn new_loaded(value: T) -> Self {
-        Self {
-            inner: Arc::new(RwLock::new(Some(Arc::new(value)))),
-            _phantom: PhantomData,
-        }
+        Self { inner: Arc::new(RwLock::new(Some(Arc::new(value)))), _phantom: PhantomData }
     }
 
     /// Returns a clone of the underlying asset, or `None` if the asset

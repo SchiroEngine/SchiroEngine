@@ -11,7 +11,9 @@ use std::sync::Arc;
 
 use bevy_ecs::prelude::*;
 use glam::Vec3;
-use schiro_ecs::{components::Transform, systems::Time, World};
+use schiro_ecs::components::Transform;
+use schiro_ecs::systems::Time;
+use schiro_ecs::World;
 use schiro_input::InputSystem;
 use schiro_physics::PhysicsWorld;
 use schiro_render::Renderer;
@@ -127,7 +129,9 @@ impl EditorApp {
     /// Builds a frame: updates ECS state, runs the egui UI, syncs
     /// transforms to the renderer and submits a render command buffer.
     pub fn render_frame(&mut self) {
-        if self.playing { self.run_game_systems(); }
+        if self.playing {
+            self.run_game_systems();
+        }
 
         let ctx = self.egui_ctx.clone();
         let full_output = {
@@ -150,19 +154,29 @@ impl EditorApp {
         gizmo::handle_viewport_input(self, aspect);
 
         let renderer = match self.renderer.as_mut() {
-            Some(r) => r, None => return,
+            Some(r) => r,
+            None => return,
         };
 
-        if vp_w > 0 && vp_h > 0 { renderer.resize_viewport(vp_w, vp_h); }
+        if vp_w > 0 && vp_h > 0 {
+            renderer.resize_viewport(vp_w, vp_h);
+        }
         {
-            let mut query = self.world.query::<(Entity, &Transform, &schiro_ecs::components::MeshRenderer)>();
+            let mut query =
+                self.world.query::<(Entity, &Transform, &schiro_ecs::components::MeshRenderer)>();
             for (e, t, _) in query.iter(&self.world) {
                 if let Some(&idx) = self.entity_mesh_map.get(&e) {
                     renderer.update_mesh_transform(idx, &t.compute_matrix());
                 }
             }
         }
-        update_gizmo_transforms(renderer, &self.world, self.selected_entity, self.gizmo_mesh_start, self.current_tool);
+        update_gizmo_transforms(
+            renderer,
+            &self.world,
+            self.selected_entity,
+            self.gizmo_mesh_start,
+            self.current_tool,
+        );
 
         let camera = self.viewport_panel.camera.to_uniform(aspect);
         if let Err(wgpu::SurfaceError::OutOfMemory) = renderer.render(&ctx, full_output, &camera) {
@@ -183,7 +197,8 @@ impl EditorApp {
 
     /// Pushes every entity's [`Transform`] to its matching GPU mesh.
     fn sync_ecs(&mut self, renderer: &mut Renderer) {
-        let mut query = self.world.query::<(Entity, &Transform, &schiro_ecs::components::MeshRenderer)>();
+        let mut query =
+            self.world.query::<(Entity, &Transform, &schiro_ecs::components::MeshRenderer)>();
         for (e, t, _) in query.iter(&self.world) {
             if let Some(&idx) = self.entity_mesh_map.get(&e) {
                 renderer.update_mesh_transform(idx, &t.compute_matrix());
@@ -194,7 +209,8 @@ impl EditorApp {
     /// Returns the human readable name of an entity, falling back to
     /// `Entity <id>` for unnamed entities.
     pub fn get_entity_name(&self, entity: Entity) -> String {
-        self.world.get::<schiro_ecs::components::Name>(entity)
+        self.world
+            .get::<schiro_ecs::components::Name>(entity)
             .map(|n| n.0.clone())
             .unwrap_or_else(|| format!("Entity {}", entity.index()))
     }
@@ -214,19 +230,37 @@ impl ApplicationHandler for EditorApp {
             .with_maximized(true);
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
         let ws = window.inner_size();
-        let mut renderer = pollster::block_on(Renderer::new(Arc::clone(&window), (ws.width, ws.height)))
-            .expect("failed to create renderer");
+        let mut renderer =
+            pollster::block_on(Renderer::new(Arc::clone(&window), (ws.width, ws.height)))
+                .expect("failed to create renderer");
 
-        init_scene(&mut self.world, &mut renderer, &self.asset_server,
-            &mut self.scene_entities, &mut self.entity_mesh_map, &mut self.gizmo_mesh_start);
+        init_scene(
+            &mut self.world,
+            &mut renderer,
+            &self.asset_server,
+            &mut self.scene_entities,
+            &mut self.entity_mesh_map,
+            &mut self.gizmo_mesh_start,
+        );
 
         self.egui_winit_state = Some(egui_winit::State::new(
-            self.egui_ctx.clone(), egui::ViewportId::default(), &window, None, None, None));
+            self.egui_ctx.clone(),
+            egui::ViewportId::default(),
+            &window,
+            None,
+            None,
+            None,
+        ));
         self.renderer = Some(renderer);
         self.window = Some(window);
     }
 
-    fn window_event(&mut self, el: &ActiveEventLoop, _: winit::window::WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        el: &ActiveEventLoop,
+        _: winit::window::WindowId,
+        event: WindowEvent,
+    ) {
         self.input.process_window_event(&event);
         if let (Some(s), Some(w)) = (self.egui_winit_state.as_mut(), self.window.as_ref()) {
             let _ = s.on_window_event(w, &event);
@@ -235,13 +269,17 @@ impl ApplicationHandler for EditorApp {
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::RedrawRequested => self.render_frame(),
             WindowEvent::Resized(ps) => {
-                if let Some(r) = self.renderer.as_mut() { r.resize(ps.width, ps.height); }
+                if let Some(r) = self.renderer.as_mut() {
+                    r.resize(ps.width, ps.height);
+                }
             }
             _ => {}
         }
     }
 
     fn about_to_wait(&mut self, _: &ActiveEventLoop) {
-        if let Some(w) = self.window.as_ref() { w.request_redraw(); }
+        if let Some(w) = self.window.as_ref() {
+            w.request_redraw();
+        }
     }
 }

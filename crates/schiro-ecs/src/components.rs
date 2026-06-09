@@ -21,11 +21,7 @@ pub struct Transform {
 
 impl Default for Transform {
     fn default() -> Self {
-        Self {
-            translation: Vec3::ZERO,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
-        }
+        Self { translation: Vec3::ZERO, rotation: Quat::IDENTITY, scale: Vec3::ONE }
     }
 }
 
@@ -34,30 +30,21 @@ impl Transform {
     /// rotation and unit scale.
     #[inline]
     pub fn from_translation(translation: Vec3) -> Self {
-        Self {
-            translation,
-            ..Default::default()
-        }
+        Self { translation, ..Default::default() }
     }
 
     /// Builds a transform with the given rotation, located at the origin
     /// with unit scale.
     #[inline]
     pub fn from_rotation(rotation: Quat) -> Self {
-        Self {
-            rotation,
-            ..Default::default()
-        }
+        Self { rotation, ..Default::default() }
     }
 
     /// Builds a transform with the given scale, located at the origin
     /// with the identity rotation.
     #[inline]
     pub fn from_scale(scale: Vec3) -> Self {
-        Self {
-            scale,
-            ..Default::default()
-        }
+        Self { scale, ..Default::default() }
     }
 
     /// Composes the local position, rotation and scale into a single
@@ -110,10 +97,7 @@ pub struct MeshRenderer {
 
 impl Default for MeshRenderer {
     fn default() -> Self {
-        Self {
-            mesh_handle: None,
-            visible: true,
-        }
+        Self { mesh_handle: None, visible: true }
     }
 }
 
@@ -126,9 +110,7 @@ pub struct Rotator {
 
 impl Default for Rotator {
     fn default() -> Self {
-        Self {
-            speed: Vec3::new(0.0, 1.0, 0.0),
-        }
+        Self { speed: Vec3::new(0.0, 1.0, 0.0) }
     }
 }
 
@@ -144,9 +126,6 @@ pub struct SpatialBundle {
 
 impl Default for SpatialBundle {
     fn default() -> Self {
-        Self {
-            transform: Transform::default(),
-            global_transform: GlobalTransform::default(),
-        }
+        Self { transform: Transform::default(), global_transform: GlobalTransform::default() }
     }
 }

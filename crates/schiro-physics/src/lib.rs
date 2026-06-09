@@ -23,9 +23,8 @@ pub mod query;
 pub mod rigid_body;
 pub mod world;
 
-pub use world::PhysicsWorld;
-
 use tracing::info;
+pub use world::PhysicsWorld;
 
 /// Logs a startup line. Kept for symmetry with the other engine
 /// subsystems; the actual Rapier pipeline is built lazily inside

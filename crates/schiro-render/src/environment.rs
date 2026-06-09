@@ -76,11 +76,7 @@ impl Environment {
         // ----------------------------------------------------------------
         let dummy = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Default White"),
-            size: wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
+            size: wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -97,16 +93,8 @@ impl Environment {
                 aspect: wgpu::TextureAspect::All,
             },
             &white_pixel,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(4),
-                rows_per_image: Some(1),
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
+            wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(4), rows_per_image: Some(1) },
+            wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
         );
         let dummy_view = dummy.create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -115,11 +103,7 @@ impl Environment {
         // ----------------------------------------------------------------
         let prefilter = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("IBL Prefilter"),
-            size: wgpu::Extent3d {
-                width: ENV_SIZE,
-                height: ENV_SIZE,
-                depth_or_array_layers: 6,
-            },
+            size: wgpu::Extent3d { width: ENV_SIZE, height: ENV_SIZE, depth_or_array_layers: 6 },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -140,11 +124,7 @@ impl Environment {
         // ----------------------------------------------------------------
         let irradiance = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("IBL Irradiance"),
-            size: wgpu::Extent3d {
-                width: ENV_SIZE,
-                height: ENV_SIZE,
-                depth_or_array_layers: 6,
-            },
+            size: wgpu::Extent3d { width: ENV_SIZE, height: ENV_SIZE, depth_or_array_layers: 6 },
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
@@ -320,12 +300,7 @@ impl Environment {
 
 /// Uploads a single RGBA32 float pixel to one face of a `Rgba16Float`
 /// cubemap-sized texture.
-fn upload_solid_face(
-    queue: &wgpu::Queue,
-    texture: &wgpu::Texture,
-    face: u32,
-    rgba: [f32; 4],
-) {
+fn upload_solid_face(queue: &wgpu::Queue, texture: &wgpu::Texture, face: u32, rgba: [f32; 4]) {
     let r = half::f16::from_f32(rgba[0]);
     let g = half::f16::from_f32(rgba[1]);
     let b = half::f16::from_f32(rgba[2]);
@@ -344,15 +319,7 @@ fn upload_solid_face(
             aspect: wgpu::TextureAspect::All,
         },
         &bytes,
-        wgpu::ImageDataLayout {
-            offset: 0,
-            bytes_per_row: Some(8),
-            rows_per_image: Some(1),
-        },
-        wgpu::Extent3d {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 1,
-        },
+        wgpu::ImageDataLayout { offset: 0, bytes_per_row: Some(8), rows_per_image: Some(1) },
+        wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
     );
 }
