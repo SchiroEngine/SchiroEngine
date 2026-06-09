@@ -1,4 +1,4 @@
-use egui::{Color32, CornerRadius, Stroke, Style, Visuals};
+use egui::{Color32, CornerRadius, Stroke, Visuals};
 
 pub fn apply_dark_theme(ctx: &egui::Context) {
     let mut visuals = Visuals::dark();
