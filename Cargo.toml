@@ -15,8 +15,8 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/gabrielhamel/SchiroEngine"
-authors = ["Gabriel Hamel"]
+repository = "https://github.com/SchiroEngine/SchiroEngine"
+authors = ["Gab", "Vekoo"]
 
 [workspace.lints.rust]
 unused_must_use = "warn"
