@@ -1,7 +1,17 @@
+//! Procedural mesh generators that produce [`MeshAsset`] values without
+//! touching the file system.
+//!
+//! Useful for editor placeholders, debug helpers and tests.
+
 use glam::Vec3;
 
 use super::types::MeshAsset;
 
+/// Builds a UV sphere.
+///
+/// `segments` controls the number of slices around the Y axis, `rings`
+/// the number of stacks from pole to pole. Both counts must be greater
+/// than zero; larger values yield smoother spheres.
 pub fn create_sphere(radius: f32, segments: u32, rings: u32) -> MeshAsset {
     let mut mesh = MeshAsset::new("Sphere");
 
@@ -44,6 +54,10 @@ pub fn create_sphere(radius: f32, segments: u32, rings: u32) -> MeshAsset {
     mesh
 }
 
+/// Builds a cylinder centered on the origin, aligned with the Y axis.
+///
+/// The cylinder has no caps: it is meant to be combined with additional
+/// geometry for the top and bottom faces when those are needed.
 pub fn create_cylinder(radius: f32, height: f32, segments: u32) -> MeshAsset {
     let mut mesh = MeshAsset::new("Cylinder");
     let half_h = height * 0.5;

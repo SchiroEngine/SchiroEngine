@@ -1,11 +1,27 @@
+//! PBR render pipeline and bind group layouts.
+//!
+//! Defines the [`PbrPipeline`] struct, which holds the wgpu pipeline
+//! object along with the three bind group layouts (camera, model and
+//! light) consumed by the shader.
+
+use wgpu::BindGroupLayout;
+
+/// Render pipeline object paired with the bind group layouts it
+/// expects.
 pub struct PbrPipeline {
+    /// The wgpu render pipeline used to draw every PBR mesh.
     pub pipeline: wgpu::RenderPipeline,
+    /// Bind group layout for the camera uniform buffer.
     pub camera_layout: wgpu::BindGroupLayout,
+    /// Bind group layout for the per-mesh model uniform buffer.
     pub model_layout: wgpu::BindGroupLayout,
+    /// Bind group layout for the global light uniform buffer.
     pub light_layout: wgpu::BindGroupLayout,
 }
 
 impl PbrPipeline {
+    /// Compiles the PBR shader and builds every bind group layout
+    /// needed by the pipeline.
     pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("PBR Shader"),
@@ -117,3 +133,8 @@ impl PbrPipeline {
         }
     }
 }
+
+// `BindGroupLayout` re-export kept here so that downstream code that
+// imports the module path does not need a separate `wgpu` import.
+#[allow(unused_imports)]
+use BindGroupLayout as _BindGroupLayoutReexport;

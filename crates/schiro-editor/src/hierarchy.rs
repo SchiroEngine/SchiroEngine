@@ -1,15 +1,5 @@
-pub struct HierarchyPanel;
-
-impl HierarchyPanel {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn show(&mut self, _ctx: &egui::Context) {}
-}
-
-impl Default for HierarchyPanel {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+//! Read-only scene hierarchy fallback.
+//!
+//! The interactive hierarchy lives in [`crate::panels::hierarchy`]; the
+//! placeholder here exists for backwards compatibility and will be
+//! removed once the full hierarchy supports nested entities.

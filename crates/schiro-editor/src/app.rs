@@ -1,3 +1,11 @@
+//! Editor application core.
+//!
+//! Holds every long-lived piece of state required by the editor: the
+//! ECS [`World`], the wgpu [`Renderer`], the asset server, the input
+//! and physics systems, the viewport, the gizmo state and the panel
+//! focused widget. The struct implements [`winit::application::ApplicationHandler`]
+//! so that winit can drive the per-frame event flow.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -18,40 +26,68 @@ use crate::editor::scene::{init_scene, update_gizmo_transforms};
 use crate::project::Project;
 use crate::viewport::ViewportPanel;
 
+/// Root editor application.
 pub struct EditorApp {
+    /// ECS world shared by the editor and runtime systems.
     pub world: World,
+    /// Optional wgpu renderer, created when the window is ready.
     pub renderer: Option<Renderer>,
+    /// Asset server used to deduplicate loads.
     pub asset_server: schiro_assets::AssetServer,
+    /// Input system that tracks keyboard, mouse and gamepad state.
     pub input: InputSystem,
+    /// 3D physics world wrapper around Rapier.
     pub physics: PhysicsWorld,
+    /// Current project metadata.
     pub project: Project,
+    /// Application window, once it has been created.
     pub window: Option<Arc<Window>>,
+    /// egui context used to build the editor UI.
     pub egui_ctx: egui::Context,
+    /// egui-winit integration state.
     pub egui_winit_state: Option<egui_winit::State>,
+    /// 3D viewport widget embedded in the editor.
     pub viewport_panel: ViewportPanel,
+    /// Entities currently part of the scene.
     pub scene_entities: Vec<Entity>,
+    /// Currently selected entity, if any.
     pub selected_entity: Option<Entity>,
+    /// Maps every scene entity to the index of its GPU mesh.
     pub entity_mesh_map: HashMap<Entity, usize>,
+    /// Index of the first gizmo mesh in [`EditorApp::renderer`].
     pub gizmo_mesh_start: usize,
+    /// Active gizmo drag, if any.
     pub gizmo_drag: Option<GizmoDrag>,
+    /// Current gizmo tool.
     pub current_tool: EditorTool,
+    /// `true` when the runtime is in play mode.
     pub playing: bool,
 }
 
+/// Gizmo tool currently selected in the toolbar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditorTool {
+    /// Translate the selected entity along an axis.
     Translate,
+    /// Rotate the selected entity around an axis.
     Rotate,
+    /// Scale the selected entity along an axis.
     Scale,
 }
 
+/// State of an in-progress gizmo drag.
 #[derive(Debug, Clone, Copy)]
 pub struct GizmoDrag {
+    /// Index of the axis being dragged (`0` = X, `1` = Y, `2` = Z).
     pub axis: usize,
+    /// Entity being transformed.
     pub entity: Entity,
 }
 
 impl EditorApp {
+    /// Builds a new editor application. The wgpu renderer is not
+    /// created yet; it is built inside [`ApplicationHandler::resumed`]
+    /// when the window is ready.
     pub fn new() -> Self {
         let mut world = World::new();
         schiro_ecs::init(&mut world);
@@ -81,12 +117,15 @@ impl EditorApp {
         app
     }
 
+    /// Runs the winit event loop. Blocks until the window is closed.
     pub fn run(mut self) -> Result<(), Box<dyn std::error::Error>> {
         let event_loop = EventLoop::new()?;
         event_loop.run_app(&mut self)?;
         Ok(())
     }
 
+    /// Builds a frame: updates ECS state, runs the egui UI, syncs
+    /// transforms to the renderer and submits a render command buffer.
     pub fn render_frame(&mut self) {
         if self.playing { self.run_game_systems(); }
 
@@ -131,6 +170,8 @@ impl EditorApp {
         }
     }
 
+    /// Runs the systems that should execute while the editor is in
+    /// play mode.
     fn run_game_systems(&mut self) {
         let mut t = self.world.resource_mut::<Time>();
         t.update(0.016);
@@ -140,6 +181,7 @@ impl EditorApp {
         s.run(&mut self.world);
     }
 
+    /// Pushes every entity's [`Transform`] to its matching GPU mesh.
     fn sync_ecs(&mut self, renderer: &mut Renderer) {
         let mut query = self.world.query::<(Entity, &Transform, &schiro_ecs::components::MeshRenderer)>();
         for (e, t, _) in query.iter(&self.world) {
@@ -149,12 +191,16 @@ impl EditorApp {
         }
     }
 
+    /// Returns the human readable name of an entity, falling back to
+    /// `Entity <id>` for unnamed entities.
     pub fn get_entity_name(&self, entity: Entity) -> String {
         self.world.get::<schiro_ecs::components::Name>(entity)
             .map(|n| n.0.clone())
             .unwrap_or_else(|| format!("Entity {}", entity.index()))
     }
 
+    /// Returns the current local [`Transform`] of an entity, or the
+    /// default transform if the entity has none.
     pub fn get_entity_transform(&self, entity: Entity) -> Transform {
         self.world.get::<Transform>(entity).copied().unwrap_or_default()
     }

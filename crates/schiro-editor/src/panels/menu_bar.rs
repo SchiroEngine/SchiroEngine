@@ -1,6 +1,10 @@
+//! Menu bar and toolbar.
+
 use crate::app::{EditorApp, EditorTool};
 
 impl EditorApp {
+    /// Builds the top menu bar (File, Edit) and the toolbar with the
+    /// gizmo tool buttons and the Play/Stop button.
     pub fn build_menu_bar(&mut self, _ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu_bar")
             .frame(egui::Frame::none().fill(crate::theme::panel_header_bg()).inner_margin(egui::vec2(8.0, 1.0)))
@@ -22,6 +26,8 @@ impl EditorApp {
         self.build_toolbar(_ctx);
     }
 
+    /// Builds the toolbar with the gizmo tool buttons and the
+    /// Play/Stop button.
     fn build_toolbar(&mut self, _ctx: &egui::Context) {
         egui::TopBottomPanel::top("toolbar")
             .frame(egui::Frame::none().fill(crate::theme::panel_header_bg()).inner_margin(egui::vec2(8.0, 1.0)))
@@ -53,6 +59,10 @@ impl EditorApp {
             });
     }
 
+    /// Draws a single toolbar button for a gizmo tool.
+    ///
+    /// `icon` is the Unicode glyph to display, `label` the tooltip
+    /// text and `tool` the tool the button activates.
     pub fn draw_tool_button(&mut self, ui: &mut egui::Ui, icon: &str, label: &str, tool: EditorTool) {
         use EditorTool::*;
         let selected = self.current_tool == tool;

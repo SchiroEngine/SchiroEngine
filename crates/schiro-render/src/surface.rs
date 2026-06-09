@@ -1,6 +1,19 @@
+//! Surface creation from a `winit` window.
+//!
+//! Thin wrapper around `wgpu::Instance::create_surface_unsafe`. The
+//! `unsafe` call is safe because the returned surface borrows from the
+//! supplied window which the caller must keep alive for at least as
+//! long as the surface.
+
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use wgpu::SurfaceTargetUnsafe;
 
+/// Creates a wgpu surface bound to the supplied `winit` window.
+///
+/// # Safety
+///
+/// The returned [`wgpu::Surface`] must not outlive `window`. The caller
+/// is responsible for upholding that invariant.
 pub fn create_surface(
     instance: &wgpu::Instance,
     window: &winit::window::Window,

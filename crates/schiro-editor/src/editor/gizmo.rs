@@ -1,3 +1,9 @@
+//! Gizmo input handling and axis picking.
+//!
+//! The functions in this module consume the mouse state captured by
+//! the viewport panel and translate it into drag deltas applied to
+//! the selected entity's [`Transform`].
+
 use bevy_ecs::prelude::*;
 use egui::Key;
 use glam::{Vec2, Vec3};
@@ -6,6 +12,9 @@ use schiro_ecs::components::Transform;
 
 use crate::app::{EditorApp, EditorTool, GizmoDrag};
 
+/// Consumes the viewport input accumulated during the current frame
+/// and updates the editor state accordingly: switches tools, picks
+/// entities, starts and applies gizmo drags.
 pub fn handle_viewport_input(app: &mut EditorApp, aspect: f32) {
     let vp_size = egui::vec2(app.viewport_panel.rect.width(), app.viewport_panel.rect.height());
 
@@ -61,6 +70,8 @@ pub fn handle_viewport_input(app: &mut EditorApp, aspect: f32) {
     }
 }
 
+/// Returns `true` if the gizmo of the currently selected entity is
+/// under the cursor.
 fn check_gizmo_hover(app: &EditorApp, aspect: f32) -> bool {
     let Some(entity) = app.selected_entity else { return false };
     let pos = app.get_entity_transform(entity).translation;
@@ -73,6 +84,7 @@ fn check_gizmo_hover(app: &EditorApp, aspect: f32) -> bool {
     axis < 3
 }
 
+/// Applies a translation drag delta to the dragged entity.
 fn drag_translate(app: &mut EditorApp, drag: GizmoDrag, dx: f32, dy: f32) {
     let cam = &app.viewport_panel.camera;
     let right = cam.view_matrix().inverse().x_axis.truncate();
@@ -84,6 +96,7 @@ fn drag_translate(app: &mut EditorApp, drag: GizmoDrag, dx: f32, dy: f32) {
     }
 }
 
+/// Applies a rotation drag delta to the dragged entity.
 fn drag_rotate(app: &mut EditorApp, drag: GizmoDrag, dx: f32) {
     let axis = match drag.axis { 0 => Vec3::X, 1 => Vec3::Y, 2 => Vec3::Z, _ => return };
     let rot = glam::Quat::from_axis_angle(axis, dx * 0.01);
@@ -92,6 +105,7 @@ fn drag_rotate(app: &mut EditorApp, drag: GizmoDrag, dx: f32) {
     }
 }
 
+/// Applies a scale drag delta to the dragged entity.
 fn drag_scale(app: &mut EditorApp, drag: GizmoDrag, dx: f32) {
     let factor = 1.0 + dx * 0.01;
     if let Some(mut t) = app.world.get_mut::<Transform>(drag.entity) {
@@ -99,6 +113,12 @@ fn drag_scale(app: &mut EditorApp, drag: GizmoDrag, dx: f32) {
     }
 }
 
+/// Picks the gizmo axis intersected by `ray` for the active tool.
+///
+/// Returns the axis index (`0` = X, `1` = Y, `2` = Z) and the
+/// intersection distance. When the ray does not hit any gizmo
+/// handle, the axis is set to `3` and the distance to
+/// [`f32::MAX`].
 pub fn pick_gizmo_axis(ray: &Ray, center: Vec3, tool: EditorTool) -> (usize, f32) {
     match tool {
         EditorTool::Translate => {
@@ -122,12 +142,14 @@ pub fn pick_gizmo_axis(ray: &Ray, center: Vec3, tool: EditorTool) -> (usize, f32
     (3, f32::MAX)
 }
 
+/// Builds the AABB covering a translate / scale handle along `dir`.
 fn aabb_along_axis(center: Vec3, dir: Vec3, start: f32, length: f32, hw: f32) -> Aabb {
     let a = center + dir * start;
     let b = center + dir * (start + length);
     Aabb::new(a.min(b) - Vec3::splat(hw), a.max(b) + Vec3::splat(hw))
 }
 
+/// Builds the AABB covering a rotation ring around `axis`.
 fn ring_aabb(center: Vec3, axis: Vec3, radius: f32, thickness: f32) -> Aabb {
     let h = Vec3::splat(radius + thickness);
     let mut min = center - h;

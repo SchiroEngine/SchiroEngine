@@ -1,6 +1,10 @@
+//! Status bar: shows the current play state and the active gizmo
+//! tool.
+
 use crate::app::{EditorApp, EditorTool};
 
 impl EditorApp {
+    /// Builds the bottom status bar.
     pub fn build_status_bar(&mut self, _ctx: &egui::Context) {
         let state = if self.playing { "PLAYING" } else { "EDIT" };
         let tool_name = match self.current_tool {

@@ -1,5 +1,19 @@
-use egui::{Color32, CornerRadius, Stroke, Style, Visuals};
+//! Color palette and egui theme helpers for the editor.
+//!
+//! [`apply_dark_theme`] is the entry point: it builds a complete dark
+//! [`egui::Visuals`] set tuned for the editor and pushes the
+//! resulting style into the supplied egui context. The remaining
+//! functions return individual colors that the rest of the editor
+//! reuses for borders, buttons and selection accents.
 
+use egui::{Color32, CornerRadius, Stroke, Visuals};
+
+/// Applies the dark theme used by the editor to the supplied egui
+/// context.
+///
+/// The function overrides the panel fills, widget backgrounds,
+/// selection color, spacing and a few additional visuals so that
+/// every editor panel looks consistent.
 pub fn apply_dark_theme(ctx: &egui::Context) {
     let mut visuals = Visuals::dark();
     visuals.override_text_color = Some(Color32::from_rgb(0xCC, 0xCF, 0xD4));
@@ -40,22 +54,28 @@ pub fn apply_dark_theme(ctx: &egui::Context) {
     ctx.set_style(style);
 }
 
+/// Accent color used for selection outlines and active buttons.
 pub fn accent_color() -> Color32 {
     Color32::from_rgb(0x4D, 0x78, 0xCC)
 }
 
+/// Background color used for panel headers (menu bar, toolbar, status
+/// bar).
 pub fn panel_header_bg() -> Color32 {
     Color32::from_rgb(0x22, 0x23, 0x28)
 }
 
+/// Dim text color used for secondary labels and placeholders.
 pub fn text_dim() -> Color32 {
     Color32::from_rgb(0x88, 0x8C, 0x94)
 }
 
+/// Bright text color used for primary labels.
 pub fn text_bright() -> Color32 {
     Color32::from_rgb(0xE8, 0xEA, 0xED)
 }
 
+/// Slightly lighter background used for hover and selected states.
 pub fn faint_bg_color() -> Color32 {
     Color32::from_rgb(0x22, 0x23, 0x28)
 }

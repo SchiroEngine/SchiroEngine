@@ -1,3 +1,6 @@
+//! Inspector panel: displays the components of the currently selected
+//! entity in a read only fashion.
+
 use bevy_ecs::prelude::*;
 use glam::Vec3;
 use schiro_ecs::components::{Rotator, Transform};
@@ -5,6 +8,7 @@ use schiro_ecs::components::{Rotator, Transform};
 use crate::app::EditorApp;
 
 impl EditorApp {
+    /// Builds the right hand inspector panel.
     pub fn build_inspector_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::right("inspector_panel")
             .resizable(true).default_width(300.0).min_width(220.0)
@@ -21,6 +25,7 @@ impl EditorApp {
             });
     }
 
+    /// Draws the body of the inspector for a single entity.
     fn draw_inspector_content(&mut self, ui: &mut egui::Ui, entity: Entity) {
         let name = self.get_entity_name(entity);
         let t = self.get_entity_transform(entity);
@@ -37,6 +42,7 @@ impl EditorApp {
         });
     }
 
+    /// Draws the read only transform section of the inspector.
     fn draw_transform_section(&self, ui: &mut egui::Ui, t: &Transform) {
         let bg = crate::theme::faint_bg_color();
         let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 60.0), egui::Sense::hover());
@@ -55,6 +61,7 @@ impl EditorApp {
         }
     }
 
+    /// Draws the read only rotation section of the inspector.
     fn draw_rotation_section(&self, ui: &mut egui::Ui, t: &Transform) {
         let bg = crate::theme::faint_bg_color();
         let (rect, _) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 40.0), egui::Sense::hover());

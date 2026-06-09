@@ -1,3 +1,10 @@
+//! PBR shader used by the editor's 3D viewport.
+//!
+//! The shader implements a simplified Phong model with a single
+//! directional light. The PBR pipeline (GGX + Schlick + IBL) will be
+//! plugged in by replacing `fs_main` with the production implementation
+//! once the matching uniform layout is finalised.
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) normal: vec3<f32>,
@@ -34,6 +41,9 @@ struct LightUniform {
 @group(1) @binding(0) var<uniform> model: ModelUniform;
 @group(2) @binding(0) var<uniform> light: LightUniform;
 
+/// Vertex shader: transforms the input vertex from object space to
+/// clip space and forwards world space attributes to the fragment
+/// stage.
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
@@ -45,6 +55,9 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     return out;
 }
 
+/// Fragment shader: lights the surface with a single directional light
+/// using a Phong approximation. Will be replaced by a full PBR
+/// implementation (GGX + Schlick + IBL).
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let N = normalize(in.world_normal);

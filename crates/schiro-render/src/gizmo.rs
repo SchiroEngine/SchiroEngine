@@ -1,23 +1,49 @@
+//! Gizmo meshes used by the editor to translate, rotate and scale
+//! entities.
+//!
+//! The meshes are precomputed once and cloned for every selected
+//! entity. They are hidden by setting their model matrix to a zero
+//! scale, which is cheaper than re-uploading a fresh mesh.
+
 use glam::Vec3;
 
 use crate::mesh::{Mesh, Vertex};
 
+/// Bundle of gizmo meshes, in the order expected by the editor.
+///
+/// Index layout (12 meshes total):
+/// - `0..6` : translate shafts and tips, one per axis.
+/// - `6..9` : rotation rings, one per axis.
+/// - `9..12`: scale handles, one per axis.
 pub struct GizmoMeshes {
+    /// Red shaft of the translate gizmo, along +X.
     pub x_shaft: Mesh,
+    /// Red tip cone of the translate gizmo, along +X.
     pub x_tip: Mesh,
+    /// Green shaft of the translate gizmo, along +Y.
     pub y_shaft: Mesh,
+    /// Green tip cone of the translate gizmo, along +Y.
     pub y_tip: Mesh,
+    /// Blue shaft of the translate gizmo, along +Z.
     pub z_shaft: Mesh,
+    /// Blue tip cone of the translate gizmo, along +Z.
     pub z_tip: Mesh,
+    /// Red rotation ring, around the X axis.
     pub rot_x: Mesh,
+    /// Green rotation ring, around the Y axis.
     pub rot_y: Mesh,
+    /// Blue rotation ring, around the Z axis.
     pub rot_z: Mesh,
+    /// Red scale handle, along +X.
     pub scale_x: Mesh,
+    /// Green scale handle, along +Y.
     pub scale_y: Mesh,
+    /// Blue scale handle, along +Z.
     pub scale_z: Mesh,
 }
 
 impl GizmoMeshes {
+    /// Builds the default set of gizmo meshes.
     pub fn new() -> Self {
         let shaft_len = 0.8;
         let shaft_half = 0.03;
@@ -41,6 +67,8 @@ impl GizmoMeshes {
     }
 }
 
+/// Builds a flat ring of given `radius` and `normal`, split into
+/// `segments` quads.
 fn rotation_ring(radius: f32, normal: [f32; 3], segments: u32) -> Mesh {
     let mut mesh = Mesh::new("rot_ring");
     let n = Vec3::from_array(normal).normalize();
@@ -76,6 +104,7 @@ fn rotation_ring(radius: f32, normal: [f32; 3], segments: u32) -> Mesh {
         let b = a + 2;
         let c = a + 1;
         let d = a + 3;
+
         mesh.indices.push(a);
         mesh.indices.push(b);
         mesh.indices.push(c);
@@ -87,6 +116,8 @@ fn rotation_ring(radius: f32, normal: [f32; 3], segments: u32) -> Mesh {
     mesh
 }
 
+/// Builds a small box used as a scale handle at `distance` along the
+/// given axis.
 fn scale_handle(axis: [f32; 3], distance: f32, half: f32) -> Mesh {
     let d = Vec3::from_array(axis).normalize();
     let center = d * distance;
@@ -135,6 +166,8 @@ fn scale_handle(axis: [f32; 3], distance: f32, half: f32) -> Mesh {
     mesh
 }
 
+/// Builds a box aligned with `dir` that extends from the origin to
+/// `length` along that axis.
 fn axis_box(dir: [f32; 3], length: f32, half_width: f32) -> Mesh {
     let mut mesh = Mesh::new("gizmo_shaft");
     let d = Vec3::from_array(dir);
@@ -206,6 +239,8 @@ fn axis_box(dir: [f32; 3], length: f32, half_width: f32) -> Mesh {
     mesh
 }
 
+/// Builds a cone aligned with `dir` starting at `start` and extending
+/// `length` units.
 fn axis_pyramid(dir: [f32; 3], start: f32, length: f32, half_width: f32) -> Mesh {
     let mut mesh = Mesh::new("gizmo_tip");
     let d = Vec3::from_array(dir);
@@ -275,6 +310,7 @@ fn axis_pyramid(dir: [f32; 3], start: f32, length: f32, half_width: f32) -> Mesh
     mesh
 }
 
+/// Computes the unit normal of the triangle `(a, b, c)`.
 fn compute_normal(a: &Vec3, b: &Vec3, c: &Vec3) -> [f32; 3] {
     let ab = *b - *a;
     let ac = *c - *a;

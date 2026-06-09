@@ -1,15 +1,5 @@
-pub struct AssetBrowser;
-
-impl AssetBrowser {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn show(&mut self, _ctx: &egui::Context) {}
-}
-
-impl Default for AssetBrowser {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+//! Asset browser panel.
+//!
+//! Currently a stub: the panel will eventually list the assets
+//! available in the project, allow drag-and-drop into the viewport and
+//! support a search bar.

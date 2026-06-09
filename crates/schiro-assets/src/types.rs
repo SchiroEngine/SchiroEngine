@@ -1,18 +1,37 @@
+//! Concrete asset data structures produced by the engine loaders and
+//! generators.
+//!
+//! These types are deliberately `Clone`-friendly so the
+//! [`crate::AssetServer`] can hand out copies without re-reading the
+//! underlying file.
+
 use glam::{Vec2, Vec3};
 
 use crate::Asset;
 
+/// CPU side mesh data produced by the glTF loader or a procedural
+/// generator.
+///
+/// The renderer copies the arrays into GPU buffers; this struct is kept
+/// around for editor previews and collision generation.
 #[derive(Debug, Clone)]
 pub struct MeshAsset {
+    /// Display name of the mesh, used by the editor.
     pub name: String,
+    /// Vertex positions, in object space.
     pub positions: Vec<[f32; 3]>,
+    /// Vertex normals.
     pub normals: Vec<[f32; 3]>,
+    /// Vertex UVs.
     pub uvs: Vec<[f32; 2]>,
+    /// Vertex tangents. The fourth component encodes the handedness.
     pub tangents: Vec<[f32; 4]>,
+    /// Triangle indices, three entries per triangle.
     pub indices: Vec<u32>,
 }
 
 impl MeshAsset {
+    /// Builds an empty mesh with the supplied name.
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -24,14 +43,17 @@ impl MeshAsset {
         }
     }
 
+    /// Returns the number of vertices in the mesh.
     pub fn vertex_count(&self) -> usize {
         self.positions.len()
     }
 
+    /// Returns the number of triangles in the mesh.
     pub fn triangle_count(&self) -> usize {
         self.indices.len() / 3
     }
 
+    /// Recomputes smooth vertex normals from the current index buffer.
     pub fn compute_normals(&mut self) {
         self.normals.resize(self.positions.len(), [0.0, 0.0, 0.0]);
         for chunk in self.indices.chunks(3) {
@@ -51,6 +73,10 @@ impl MeshAsset {
         }
     }
 
+    /// Recomputes vertex tangents from the supplied UVs and indices.
+    ///
+    /// Falls back to a default tangent of `(1, 0, 0, 1)` when the mesh
+    /// has no UV coordinates.
     pub fn compute_tangents(&mut self) {
         self.tangents.resize(self.positions.len(), [1.0, 0.0, 0.0, 1.0]);
         if self.uvs.is_empty() {
@@ -88,11 +114,16 @@ impl Asset for MeshAsset {
     }
 }
 
+/// CPU side texture data decoded from disk.
 #[derive(Debug, Clone)]
 pub struct TextureAsset {
+    /// Image width, in pixels.
     pub width: u32,
+    /// Image height, in pixels.
     pub height: u32,
+    /// Raw pixel data, tightly packed.
     pub data: Vec<u8>,
+    /// Number of channels per pixel (1, 2, 3 or 4).
     pub channels: u8,
 }
 
@@ -102,11 +133,16 @@ impl Asset for TextureAsset {
     }
 }
 
+/// Material description stored as an asset.
 #[derive(Debug, Clone)]
 pub struct MaterialAsset {
+    /// Display name of the material.
     pub name: String,
+    /// Base color in linear space.
     pub base_color: [f32; 4],
+    /// Metallic factor in the `[0, 1]` range.
     pub metallic: f32,
+    /// Roughness factor in the `[0, 1]` range.
     pub roughness: f32,
 }
 

@@ -1,8 +1,18 @@
+//! glTF 2.0 importer built on top of the [`gltf`] crate.
+//!
+//! Walks the document and produces a [`MeshAsset`] per primitive. The
+//! function intentionally ignores cameras, animations and skins: the
+//! runtime currently consumes geometry and materials only.
+
 use std::path::Path;
 
 use crate::loader::AssetLoadError;
 use crate::types::MeshAsset;
 
+/// Loads every mesh found in the glTF file at `path`.
+///
+/// Returns an [`AssetLoadError::Gltf`] if the document cannot be parsed,
+/// or [`AssetLoadError::Parse`] when the file contains no meshes.
 pub fn load_gltf(path: &Path) -> Result<Vec<MeshAsset>, AssetLoadError> {
     let (document, buffers, _images) =
         gltf::import(path).map_err(|e| AssetLoadError::Gltf(e.to_string()))?;

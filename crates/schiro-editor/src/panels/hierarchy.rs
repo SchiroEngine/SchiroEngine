@@ -1,6 +1,10 @@
+//! Hierarchy panel: lists every scene entity and lets the user select
+//! one by clicking on it.
+
 use crate::app::EditorApp;
 
 impl EditorApp {
+    /// Builds the left hand hierarchy panel.
     pub fn build_hierarchy_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("hierarchy_panel")
             .resizable(true).default_width(260.0).min_width(180.0)

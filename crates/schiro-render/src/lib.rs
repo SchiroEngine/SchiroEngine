@@ -1,3 +1,26 @@
+//! wgpu based rendering backend.
+//!
+//! The crate exposes the [`Renderer`] type that owns the wgpu device,
+//! queue, surface and the editor viewport. Higher level types
+//! ([`Mesh`], `Material`, light definitions, ...) are also defined
+//! here so that they can stay in lockstep with the shader sources in
+//! `assets/shaders`.
+//!
+//! # Modules
+//!
+//! - [`camera`] — GPU camera and light uniform layouts.
+//! - [`device`] — device management and swapchain helpers.
+//! - [`light`] — directional, point and spot light descriptions.
+//! - [`material`] — PBR material parameters.
+//! - [`mesh`] — CPU and GPU mesh storage plus primitive generators.
+//! - [`pipeline`] — PBR render pipeline and bind group layouts.
+//! - [`surface`] — surface creation from a `winit` window.
+//! - [`texture`] — texture handles and format enum.
+//! - [`viewport`] — off-screen viewport used by the editor.
+//! - [`graph`] — placeholder for the upcoming frame graph.
+//! - [`gizmo`] — translate / rotate / scale gizmo meshes.
+//! - [`egui_renderer`] — re-export of `egui_wgpu` for the editor UI.
+
 pub mod camera;
 pub mod device;
 pub mod egui_renderer;
@@ -20,18 +43,33 @@ use mesh::GpuMesh;
 pub use surface::create_surface;
 pub use viewport::ViewportRenderer;
 
+/// High level renderer that owns the wgpu device, queue, surface and
+/// the editor's off-screen viewport.
 pub struct Renderer {
+    /// Window bound wgpu surface.
     pub surface: wgpu::Surface<'static>,
+    /// Logical wgpu device used for every allocation in the engine.
     pub device: wgpu::Device,
+    /// Submission queue paired with [`Renderer::device`].
     pub queue: wgpu::Queue,
+    /// Current surface configuration.
     pub config: wgpu::SurfaceConfiguration,
+    /// Current surface size in physical pixels.
     pub size: (u32, u32),
+    /// egui renderer used by the editor UI.
     pub egui_renderer: egui_wgpu::Renderer,
+    /// Optional off-screen viewport used by the editor scene view.
     pub viewport: Option<ViewportRenderer>,
+    /// Meshes that the renderer has already uploaded to the GPU.
     pub meshes: Vec<GpuMesh>,
 }
 
 impl Renderer {
+    /// Creates a new renderer for the supplied `window`.
+    ///
+    /// The function blocks on the asynchronous wgpu setup using
+    /// `pollster`, then configures the surface and prepares the
+    /// default viewport.
     pub async fn new(
         window: Arc<winit::window::Window>,
         size: (u32, u32),
@@ -91,6 +129,8 @@ impl Renderer {
         })
     }
 
+    /// Resizes the window-bound surface. No-op when either dimension is
+    /// zero (the window is minimized).
     pub fn resize(&mut self, width: u32, height: u32) {
         if width == 0 || height == 0 {
             return;
@@ -101,12 +141,16 @@ impl Renderer {
         self.surface.configure(&self.device, &self.config);
     }
 
+    /// Resizes the off-screen editor viewport. No-op when no viewport
+    /// has been created.
     pub fn resize_viewport(&mut self, width: u32, height: u32) {
         if let Some(ref mut vp) = self.viewport {
             vp.resize(&self.device, (width, height));
         }
     }
 
+    /// Uploads `mesh_data` to the GPU and stores the result at the end
+    /// of [`Renderer::meshes`].
     pub fn add_mesh(&mut self, mesh_data: &Mesh, transform: &glam::Mat4) {
         let mesh = match &self.viewport {
             Some(vp) => GpuMesh::new(&self.device, mesh_data, transform, &vp.pipeline.model_layout),
@@ -115,10 +159,14 @@ impl Renderer {
         self.meshes.push(mesh);
     }
 
+    /// Returns the number of meshes currently stored in the renderer.
     pub fn mesh_count(&self) -> usize {
         self.meshes.len()
     }
 
+    /// Updates the model matrix of the mesh at `index`.
+    ///
+    /// Returns `true` on success, `false` if the index is out of range.
     pub fn update_mesh_transform(&self, index: usize, transform: &glam::Mat4) -> bool {
         if let Some(mesh) = self.meshes.get(index) {
             mesh.update_transform(&self.queue, transform);
@@ -128,6 +176,8 @@ impl Renderer {
         }
     }
 
+    /// Renders a single frame: the off-screen viewport followed by the
+    /// egui overlay composed on top of the window surface.
     pub fn render(
         &mut self,
         egui_ctx: &egui::Context,
@@ -233,12 +283,18 @@ impl Renderer {
     }
 }
 
+/// Errors produced by [`Renderer::new`].
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {
+    /// No GPU adapter matched the request options.
     #[error("no suitable GPU adapter found")]
     NoAdapter,
+
+    /// wgpu failed to create the logical device.
     #[error("wgpu device error: {0}")]
     Wgpu(#[from] wgpu::RequestDeviceError),
+
+    /// wgpu failed to create the window surface.
     #[error("surface error: {0}")]
     Surface(#[from] wgpu::CreateSurfaceError),
 }

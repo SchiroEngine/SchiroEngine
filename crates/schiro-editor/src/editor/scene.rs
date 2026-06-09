@@ -1,3 +1,5 @@
+//! Default scene setup used when the editor boots up.
+
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
@@ -9,6 +11,12 @@ use tracing::info;
 
 use crate::app::{EditorTool, GizmoDrag};
 
+/// Spawns the default scene entities (a sphere and a grid), uploads
+/// their meshes to the renderer, and pre-allocates the gizmo meshes.
+///
+/// On return, `entities`, `mesh_map` and `gizmo_start` are populated
+/// and the renderer's mesh list contains every scene mesh followed by
+/// the 12 gizmo meshes.
 pub fn init_scene(
     world: &mut World,
     renderer: &mut Renderer,
@@ -56,6 +64,9 @@ pub fn init_scene(
     info!("scene: {} entities", entities.len());
 }
 
+/// Updates the model matrices of the 12 gizmo meshes so that the
+/// gizmos for the active tool are positioned at the selected entity,
+/// while the others are hidden by setting their scale to zero.
 pub fn update_gizmo_transforms(
     renderer: &mut Renderer,
     world: &World,
@@ -84,6 +95,8 @@ pub fn update_gizmo_transforms(
     }
 }
 
+/// Converts a CPU side [`MeshAsset`] into the renderer's
+/// [`schiro_render::Mesh`].
 fn asset_to_render_mesh(asset: &MeshAsset) -> schiro_render::Mesh {
     let mut mesh = schiro_render::Mesh::new(&asset.name);
     for i in 0..asset.positions.len() {

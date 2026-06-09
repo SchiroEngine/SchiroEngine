@@ -1,22 +1,43 @@
+//! Off-screen viewport used by the editor's scene view.
+//!
+//! The viewport owns its own color and depth textures, the PBR
+//! pipeline, the camera and light uniform buffers, and an
+//! [`egui::TextureId`] that the editor uses to display the rendered
+//! frame inside an egui panel.
+
 use crate::camera::{CameraUniform, LightUniform};
 use crate::mesh::GpuMesh;
 use crate::pipeline::PbrPipeline;
 
+/// Off-screen scene renderer used by the editor.
 pub struct ViewportRenderer {
+    /// Color attachment rendered into by the PBR pass.
     pub color_texture: wgpu::Texture,
+    /// Default view of [`ViewportRenderer::color_texture`].
     pub color_view: wgpu::TextureView,
+    /// Depth attachment paired with the color attachment.
     pub depth_texture: wgpu::Texture,
+    /// Default view of [`ViewportRenderer::depth_texture`].
     pub depth_view: wgpu::TextureView,
+    /// Current viewport size in pixels.
     pub size: (u32, u32),
+    /// PBR render pipeline used for every draw call.
     pub pipeline: PbrPipeline,
+    /// Camera uniform buffer.
     pub camera_buffer: wgpu::Buffer,
+    /// Bind group for [`ViewportRenderer::camera_buffer`].
     pub camera_bind_group: wgpu::BindGroup,
+    /// Global light uniform buffer.
     pub light_buffer: wgpu::Buffer,
+    /// Bind group for [`ViewportRenderer::light_buffer`].
     pub light_bind_group: wgpu::BindGroup,
+    /// egui texture id for the color attachment, if it has been
+    /// registered.
     pub egui_texture_id: Option<egui::TextureId>,
 }
 
 impl ViewportRenderer {
+    /// Creates the viewport with the supplied surface format and size.
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -107,6 +128,8 @@ impl ViewportRenderer {
         }
     }
 
+    /// Resizes the color and depth attachments. Clears the registered
+    /// egui texture id so the next frame re-registers it.
     pub fn resize(&mut self, device: &wgpu::Device, size: (u32, u32)) {
         if size.0 == 0 || size.1 == 0 || size == self.size {
             return;
@@ -148,6 +171,8 @@ impl ViewportRenderer {
         self.egui_texture_id = None;
     }
 
+    /// Renders the supplied meshes into the viewport's color
+    /// attachment using the camera uniform.
     pub fn render(
         &mut self,
         queue: &wgpu::Queue,
@@ -195,6 +220,8 @@ impl ViewportRenderer {
         }
     }
 
+    /// Registers the viewport color attachment with the supplied egui
+    /// renderer and stores the resulting id.
     pub fn register_egui_texture(
         &mut self,
         egui_renderer: &mut egui_wgpu::Renderer,
@@ -209,6 +236,8 @@ impl ViewportRenderer {
         id
     }
 
+    /// Reuploads the viewport color attachment into the previously
+    /// registered egui texture. No-op when no id is registered yet.
     pub fn update_egui_texture(
         &mut self,
         egui_renderer: &mut egui_wgpu::Renderer,
