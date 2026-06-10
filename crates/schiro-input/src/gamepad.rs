@@ -1,4 +1,1 @@
-//! Gamepad support.
-//!
-//! Will wrap `gilrs` (or an equivalent crate) to expose a unified
-//! gamepad API across desktop platforms.
+//! Gamepad support — stub. Will use gilrs when wired up.

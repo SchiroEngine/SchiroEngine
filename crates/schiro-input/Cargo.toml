@@ -11,6 +11,7 @@ schiro-core.workspace = true
 schiro-ecs.workspace = true
 
 winit.workspace = true
+egui.workspace = true
 glam.workspace = true
 parking_lot.workspace = true
 tracing.workspace = true

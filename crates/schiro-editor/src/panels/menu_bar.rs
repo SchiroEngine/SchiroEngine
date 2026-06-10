@@ -98,6 +98,34 @@ impl EditorApp {
                     ui.separator();
                     ui.add_space(8.0);
 
+                    ui.separator();
+                    ui.add_space(8.0);
+
+                    // Wireframe toggle.
+                    let (wpr, wrp) =
+                        ui.allocate_exact_size(egui::vec2(28.0, 20.0), egui::Sense::click());
+                    if ui.is_rect_visible(wpr) {
+                        let fill = if self.wireframe {
+                            crate::theme::accent_color()
+                        } else {
+                            Color32::TRANSPARENT
+                        };
+                        if fill != Color32::TRANSPARENT {
+                            ui.painter().rect_filled(wpr, egui::CornerRadius::same(3), fill);
+                        }
+                        ui.painter().text(
+                            wpr.center(),
+                            egui::Align2::CENTER_CENTER,
+                            "\u{25A8}",
+                            egui::FontId::proportional(13.0),
+                            if self.wireframe { Color32::WHITE } else { crate::theme::text_dim() },
+                        );
+                    }
+                    if wrp.clicked() {
+                        self.wireframe = !self.wireframe;
+                    }
+                    wrp.on_hover_text("Wireframe");
+
                     let (pr, resp) =
                         ui.allocate_exact_size(egui::vec2(64.0, 22.0), egui::Sense::click());
                     if ui.is_rect_visible(pr) {

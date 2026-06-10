@@ -64,6 +64,8 @@ pub struct EditorApp {
     pub current_tool: EditorTool,
     /// `true` when the runtime is in play mode.
     pub playing: bool,
+    /// `true` for wireframe rendering.
+    pub wireframe: bool,
     /// Snapshot of the scene taken when Play was pressed,
     /// restored on Stop.
     pub play_snapshot: Option<String>,
@@ -122,6 +124,7 @@ impl EditorApp {
             gizmo_drag: None,
             current_tool: EditorTool::Translate,
             playing: false,
+            wireframe: false,
             play_snapshot: None,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
@@ -169,6 +172,9 @@ impl EditorApp {
                     if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
                         self.delete_selected();
                     }
+                    if i.consume_key(egui::Modifiers::NONE, egui::Key::F) {
+                        self.focus_on_selected();
+                    }
                 });
                 self.build_editor_ui(ctx)
             })
@@ -208,6 +214,10 @@ impl EditorApp {
             self.gizmo_mesh_start,
             self.current_tool,
         );
+
+        if let Some(ref mut vp) = renderer.viewport {
+            vp.wireframe = self.wireframe;
+        }
 
         let camera = self.viewport_panel.camera.to_uniform(aspect);
         if let Err(wgpu::SurfaceError::OutOfMemory) = renderer.render(&ctx, full_output, &camera) {
@@ -333,6 +343,13 @@ impl EditorApp {
         self.world.entity_mut(entity).despawn();
         self.selected_entity = None;
         self.gizmo_drag = None;
+    }
+
+    /// Points the orbit camera at the currently selected entity.
+    pub fn focus_on_selected(&mut self) {
+        let Some(entity) = self.selected_entity else { return };
+        let pos = self.get_entity_transform(entity).translation;
+        self.viewport_panel.camera.target = pos;
     }
 
     /// Returns the human readable name of an entity, falling back to

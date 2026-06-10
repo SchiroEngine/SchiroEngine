@@ -52,6 +52,8 @@ impl Default for MaterialParams {
 pub struct PbrPipeline {
     /// The wgpu render pipeline used to draw every PBR mesh.
     pub pipeline: wgpu::RenderPipeline,
+    /// Wireframe variant (PolygonMode::Line).
+    pub wireframe: wgpu::RenderPipeline,
     /// Bind group layout for the camera uniform buffer.
     pub camera_layout: wgpu::BindGroupLayout,
     /// Bind group layout for the per-mesh model uniform buffer.
@@ -284,6 +286,51 @@ impl PbrPipeline {
             cache: None,
         });
 
-        Self { pipeline, camera_layout, model_layout, light_layout, material_layout }
+        // Wireframe variant.
+        let wireframe = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("PBR Wireframe"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                compilation_options: Default::default(),
+                buffers: &[super::mesh::Vertex::LAYOUT],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: Some(wgpu::Face::Back),
+                unclipped_depth: false,
+                polygon_mode: wgpu::PolygonMode::Line,
+                conservative: false,
+            },
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: wgpu::TextureFormat::Depth32Float,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::LessEqual,
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+            cache: None,
+        });
+
+        Self { pipeline, wireframe, camera_layout, model_layout, light_layout, material_layout }
     }
 }

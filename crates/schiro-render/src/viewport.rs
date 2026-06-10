@@ -35,6 +35,8 @@ pub struct ViewportRenderer {
     /// IBL resources (prefilter / irradiance / BRDF LUT) used by the
     /// PBR shader and shared by every mesh.
     pub environment: Environment,
+    /// Whether to use wireframe rendering.
+    pub wireframe: bool,
     /// egui texture id for the color attachment, if it has been
     /// registered.
     pub egui_texture_id: Option<egui::TextureId>,
@@ -123,6 +125,7 @@ impl ViewportRenderer {
             light_buffer,
             light_bind_group,
             environment,
+            wireframe: false,
             egui_texture_id: None,
         }
     }
@@ -201,7 +204,11 @@ impl ViewportRenderer {
                 occlusion_query_set: None,
             });
 
-            pass.set_pipeline(&self.pipeline.pipeline);
+            pass.set_pipeline(if self.wireframe {
+                &self.pipeline.wireframe
+            } else {
+                &self.pipeline.pipeline
+            });
             pass.set_bind_group(0, &self.camera_bind_group, &[]);
             pass.set_bind_group(2, &self.light_bind_group, &[]);
             // Bind the default material bind group (slot 3) once.
