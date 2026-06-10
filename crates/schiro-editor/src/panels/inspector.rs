@@ -8,7 +8,7 @@
 //! on the fly.
 
 use bevy_ecs::prelude::*;
-use glam::{Quat, Vec3};
+use glam::Quat;
 use schiro_ecs::components::{Name, Rotator, Transform};
 
 use crate::app::EditorApp;
@@ -89,45 +89,23 @@ impl EditorApp {
     /// Translation as an editable Vec3.
     fn draw_translation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
         ui.group(|ui| {
-            ui.label(
-                egui::RichText::new("Translation")
-                    .color(crate::theme::text_dim())
-                    .size(11.0),
-            );
+            ui.label(egui::RichText::new("Translation").color(crate::theme::text_dim()).size(11.0));
             let mut t = match self.world.get::<Transform>(entity) {
                 Some(t) => *t,
                 None => return,
             };
             let mut edited = t.translation;
             ui.horizontal(|ui| {
-                ui.label(
-                    egui::RichText::new("X").color(crate::theme::accent_color()).size(11.5),
-                );
-                ui.add(
-                    egui::DragValue::new(&mut edited.x)
-                        .speed(0.05)
-                        .max_decimals(3),
-                );
+                ui.label(egui::RichText::new("X").color(crate::theme::accent_color()).size(11.5));
+                ui.add(egui::DragValue::new(&mut edited.x).speed(0.05).max_decimals(3));
             });
             ui.horizontal(|ui| {
-                ui.label(
-                    egui::RichText::new("Y").color(crate::theme::accent_color()).size(11.5),
-                );
-                ui.add(
-                    egui::DragValue::new(&mut edited.y)
-                        .speed(0.05)
-                        .max_decimals(3),
-                );
+                ui.label(egui::RichText::new("Y").color(crate::theme::accent_color()).size(11.5));
+                ui.add(egui::DragValue::new(&mut edited.y).speed(0.05).max_decimals(3));
             });
             ui.horizontal(|ui| {
-                ui.label(
-                    egui::RichText::new("Z").color(crate::theme::accent_color()).size(11.5),
-                );
-                ui.add(
-                    egui::DragValue::new(&mut edited.z)
-                        .speed(0.05)
-                        .max_decimals(3),
-                );
+                ui.label(egui::RichText::new("Z").color(crate::theme::accent_color()).size(11.5));
+                ui.add(egui::DragValue::new(&mut edited.z).speed(0.05).max_decimals(3));
             });
             if edited != t.translation {
                 if let Some(mut existing) = self.world.get_mut::<Transform>(entity) {
@@ -145,26 +123,28 @@ impl EditorApp {
     fn draw_rotation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
         ui.group(|ui| {
             ui.label(
-                egui::RichText::new("Rotation (deg)")
-                    .color(crate::theme::text_dim())
-                    .size(11.0),
+                egui::RichText::new("Rotation (deg)").color(crate::theme::text_dim()).size(11.0),
             );
             let t = match self.world.get::<Transform>(entity) {
                 Some(t) => *t,
                 None => return,
             };
             let (yaw, pitch, roll) = t.rotation.to_euler(glam::EulerRot::YXZ);
-            let mut deg = [yaw.to_degrees(), pitch.to_degrees(), roll.to_degrees()];
+            // Read the initial values out of deg first, then take
+            // individual mutable references inside the loop to avoid
+            // simultaneous borrows of the same array.
+            let initial = [yaw.to_degrees(), pitch.to_degrees(), roll.to_degrees()];
+            let mut deg = initial;
+            let labels = ["Y", "X", "Z"];
             let mut changed = false;
-            for (label, value) in [("Y", &mut deg[0]), ("X", &mut deg[1]), ("Z", &mut deg[2])] {
+            for i in 0..3 {
+                let label = labels[i];
                 ui.horizontal(|ui| {
                     ui.label(
-                        egui::RichText::new(label)
-                            .color(crate::theme::accent_color())
-                            .size(11.5),
+                        egui::RichText::new(label).color(crate::theme::accent_color()).size(11.5),
                     );
                     let resp = ui.add(
-                        egui::DragValue::new(*value)
+                        egui::DragValue::new(&mut deg[i])
                             .speed(0.5)
                             .max_decimals(1)
                             .suffix("\u{00B0}"),
@@ -185,34 +165,29 @@ impl EditorApp {
                     existing.rotation = new_rotation;
                 }
             }
+            let _ = initial;
         });
     }
 
     /// Scale as an editable Vec3.
     fn draw_scale_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
         ui.group(|ui| {
-            ui.label(
-                egui::RichText::new("Scale")
-                    .color(crate::theme::text_dim())
-                    .size(11.0),
-            );
+            ui.label(egui::RichText::new("Scale").color(crate::theme::text_dim()).size(11.0));
             let t = match self.world.get::<Transform>(entity) {
                 Some(t) => *t,
                 None => return,
             };
             let mut edited = t.scale;
+            let labels = ["X", "Y", "Z"];
             let mut changed = false;
-            for (label, value) in
-                [("X", &mut edited.x), ("Y", &mut edited.y), ("Z", &mut edited.z)]
-            {
+            for i in 0..3 {
+                let label = labels[i];
                 ui.horizontal(|ui| {
                     ui.label(
-                        egui::RichText::new(label)
-                            .color(crate::theme::accent_color())
-                            .size(11.5),
+                        egui::RichText::new(label).color(crate::theme::accent_color()).size(11.5),
                     );
                     let resp = ui.add(
-                        egui::DragValue::new(*value)
+                        egui::DragValue::new(&mut edited[i])
                             .speed(0.02)
                             .range(0.001..=1000.0)
                             .max_decimals(3),
@@ -234,10 +209,8 @@ impl EditorApp {
     fn draw_rotator_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
         let has_rotator = self.world.get::<Rotator>(entity).is_some();
         let label = if has_rotator { "Rotator: ON" } else { "Rotator: off" };
-        let (rect, resp) = ui.allocate_exact_size(
-            egui::vec2(ui.available_width(), 24.0),
-            egui::Sense::click(),
-        );
+        let (rect, resp) =
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 24.0), egui::Sense::click());
         if ui.is_rect_visible(rect) {
             let fill = if has_rotator {
                 crate::theme::accent_color()

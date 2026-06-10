@@ -17,9 +17,7 @@ const EPS: f32 = 1e-5;
 #[test]
 fn translation_can_be_edited_through_get_mut() {
     let mut world = World::new();
-    let e = world
-        .spawn(Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)))
-        .id();
+    let e = world.spawn(Transform::from_translation(Vec3::new(1.0, 2.0, 3.0))).id();
 
     {
         let mut t = world.get_mut::<Transform>(e).unwrap();
@@ -95,13 +93,8 @@ fn rotation_euler_roundtrip_preserves_value() {
     // The inspector edits rotation as YXZ Euler degrees. The
     // round-trip is not lossless for all orientations, but it
     // should be exact for axis-aligned quaternions.
-    let cases: [(f32, f32, f32); 5] = [
-        (0.0, 0.0, 0.0),
-        (90.0, 0.0, 0.0),
-        (0.0, 90.0, 0.0),
-        (0.0, 0.0, 90.0),
-        (45.0, 30.0, 60.0),
-    ];
+    let cases: [(f32, f32, f32); 5] =
+        [(0.0, 0.0, 0.0), (90.0, 0.0, 0.0), (0.0, 90.0, 0.0), (0.0, 0.0, 90.0), (45.0, 30.0, 60.0)];
     for (yaw, pitch, roll) in cases {
         let q = Quat::from_euler(
             glam::EulerRot::YXZ,
