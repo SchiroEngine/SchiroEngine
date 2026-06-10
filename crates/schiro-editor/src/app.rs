@@ -292,16 +292,39 @@ impl EditorApp {
         self.selected_entity = Some(entity);
     }
 
-    /// Deletes the currently selected entity: hides its GPU mesh
-    /// (zero-scale transform), removes it from the ECS world, the
-    /// scene entity list and the mesh map.
+    /// Deletes the currently selected entity: removes its GPU mesh
+    /// from the renderer, despawns the ECS entity, and cleans up
+    /// the scene list and mesh map.
     pub fn delete_selected(&mut self) {
         let Some(entity) = self.selected_entity else { return };
 
-        // Hide the GPU mesh by setting its transform to zero scale.
+        // Remove the entity's GPU mesh from the renderer, shifting
+        // the last mesh into the deleted slot so that other entity
+        // indices remain valid.
         if let Some(&idx) = self.entity_mesh_map.get(&entity) {
-            if let Some(ref renderer) = self.renderer {
-                renderer.update_mesh_transform(idx, &glam::Mat4::from_scale(glam::Vec3::ZERO));
+            if let Some(ref mut renderer) = self.renderer {
+                let last = renderer.meshes.len().saturating_sub(1);
+                if idx < last {
+                    // Swap the deleted mesh with the last one, then
+                    // update the mesh_map for the entity that owned
+                    // the last mesh.
+                    renderer.meshes.swap_remove(idx);
+                    // Find which entity had `last` as its index.
+                    for (&e, mi) in self.entity_mesh_map.iter_mut() {
+                        if *mi == last {
+                            *mi = idx;
+                            // Also update the MeshRenderer component.
+                            if let Some(mut mr) =
+                                self.world.get_mut::<schiro_ecs::components::MeshRenderer>(e)
+                            {
+                                mr.mesh_handle = Some(idx);
+                            }
+                            break;
+                        }
+                    }
+                } else {
+                    renderer.meshes.pop();
+                }
             }
         }
 
