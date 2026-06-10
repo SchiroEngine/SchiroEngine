@@ -31,8 +31,14 @@ fn compute_normals_produces_unit_vectors() {
     // a non-zero cross product, so the result is always well-defined.
     let mut m = schiro_assets::types::MeshAsset::new("cube");
     m.positions = vec![
-        [-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.5, 0.5, 0.0], [-0.5, 0.5, 0.0],
-        [-0.5, -0.5, 1.0], [0.5, -0.5, 1.0], [0.5, 0.5, 1.0], [-0.5, 0.5, 1.0],
+        [-0.5, -0.5, 0.0],
+        [0.5, -0.5, 0.0],
+        [0.5, 0.5, 0.0],
+        [-0.5, 0.5, 0.0],
+        [-0.5, -0.5, 1.0],
+        [0.5, -0.5, 1.0],
+        [0.5, 0.5, 1.0],
+        [-0.5, 0.5, 1.0],
     ];
     m.indices = vec![
         0, 1, 2, 0, 2, 3, // front

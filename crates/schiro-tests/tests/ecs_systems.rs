@@ -71,22 +71,14 @@ fn rotate_entities_advances_rotation_with_delta() {
     let r = world.get::<Transform>(e).unwrap().rotation;
     let expected = Quat::from_rotation_y(std::f32::consts::FRAC_PI_2);
     let dot = r.dot(expected).abs();
-    assert!(
-        (dot - 1.0).abs() < 1e-4,
-        "rotation mismatch, dot = {dot}"
-    );
+    assert!((dot - 1.0).abs() < 1e-4, "rotation mismatch, dot = {dot}");
 }
 
 #[test]
 fn rotate_entities_zero_speed_does_nothing() {
     let mut world = World::new();
     world.insert_resource(Time::default());
-    let e = world
-        .spawn((
-            Transform::default(),
-            Rotator { speed: glam::Vec3::ZERO },
-        ))
-        .id();
+    let e = world.spawn((Transform::default(), Rotator { speed: glam::Vec3::ZERO })).id();
     {
         let mut t = world.resource_mut::<Time>();
         t.update(1.0);

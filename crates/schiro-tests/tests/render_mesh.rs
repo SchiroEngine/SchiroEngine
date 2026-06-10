@@ -80,12 +80,7 @@ fn camera_uniform_update_packs_view_proj() {
     let expected = proj * view;
     for col in 0..4 {
         for row in 0..4 {
-            assert_approx_eq(
-                cu.view_proj[col][row],
-                expected.col(col)[row],
-                1e-4,
-                "view_proj",
-            );
+            assert_approx_eq(cu.view_proj[col][row], expected.col(col)[row], 1e-4, "view_proj");
         }
     }
     assert_eq!(cu.position, Vec4::new(1.0, 2.0, 3.0, 1.0).to_array());

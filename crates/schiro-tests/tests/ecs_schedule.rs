@@ -6,13 +6,8 @@ use schiro_ecs::schedule::CoreSet;
 
 #[test]
 fn core_set_variants_are_distinct() {
-    let sets = [
-        CoreSet::First,
-        CoreSet::PreUpdate,
-        CoreSet::Update,
-        CoreSet::PostUpdate,
-        CoreSet::Last,
-    ];
+    let sets =
+        [CoreSet::First, CoreSet::PreUpdate, CoreSet::Update, CoreSet::PostUpdate, CoreSet::Last];
     for (i, a) in sets.iter().enumerate() {
         for (j, b) in sets.iter().enumerate() {
             assert_eq!(i == j, *a == *b, "sets at {i} and {j}");

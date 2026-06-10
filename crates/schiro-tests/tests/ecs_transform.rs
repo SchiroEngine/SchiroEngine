@@ -105,10 +105,7 @@ fn name_stores_string() {
 fn world_can_spawn_with_transform() {
     let mut world = World::new();
     let entity = world
-        .spawn((
-            Name("Box".into()),
-            Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
-        ))
+        .spawn((Name("Box".into()), Transform::from_translation(Vec3::new(1.0, 2.0, 3.0))))
         .id();
 
     let t = world.get::<Transform>(entity).copied().unwrap();

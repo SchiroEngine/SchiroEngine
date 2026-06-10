@@ -11,11 +11,7 @@ use std::ops::{Add, Mul, Sub};
 /// Asserts that two `f32` values are within `eps` of each other,
 /// with a custom message.
 pub fn assert_approx_eq(a: f32, b: f32, eps: f32, ctx: &str) {
-    assert!(
-        (a - b).abs() <= eps,
-        "{ctx}: |{a} - {b}| = {} > {eps}",
-        (a - b).abs(),
-    );
+    assert!((a - b).abs() <= eps, "{ctx}: |{a} - {b}| = {} > {eps}", (a - b).abs(),);
 }
 
 /// Asserts that two `glam::Vec3` values are within `eps` per
@@ -64,7 +60,11 @@ impl Stats {
     /// Returns the arithmetic mean, or `0.0` when the sample count is
     /// zero.
     pub fn mean(&self) -> f64 {
-        if self.n == 0 { 0.0 } else { self.sum / self.n as f64 }
+        if self.n == 0 {
+            0.0
+        } else {
+            self.sum / self.n as f64
+        }
     }
 
     /// Returns the variance of the samples. Returns `0.0` for an
@@ -81,32 +81,20 @@ impl Stats {
 impl Add for Stats {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        Self {
-            n: self.n + rhs.n,
-            sum: self.sum + rhs.sum,
-            sum_sq: self.sum_sq + rhs.sum_sq,
-        }
+        Self { n: self.n + rhs.n, sum: self.sum + rhs.sum, sum_sq: self.sum_sq + rhs.sum_sq }
     }
 }
 
 impl Sub for Stats {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
-        Self {
-            n: self.n - rhs.n,
-            sum: self.sum - rhs.sum,
-            sum_sq: self.sum_sq - rhs.sum_sq,
-        }
+        Self { n: self.n - rhs.n, sum: self.sum - rhs.sum, sum_sq: self.sum_sq - rhs.sum_sq }
     }
 }
 
 impl Mul<f64> for Stats {
     type Output = Self;
     fn mul(self, rhs: f64) -> Self {
-        Self {
-            n: self.n,
-            sum: self.sum * rhs,
-            sum_sq: self.sum_sq * rhs * rhs,
-        }
+        Self { n: self.n, sum: self.sum * rhs, sum_sq: self.sum_sq * rhs * rhs }
     }
 }

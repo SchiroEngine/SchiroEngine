@@ -32,12 +32,8 @@ fn load_returns_clone_of_cached_value() {
 #[test]
 fn load_different_paths_does_not_collide() {
     let server = AssetServer::new();
-    let a = server
-        .load::<MeshAsset, _>("proc://a", |_| Ok(MeshAsset::new("A")))
-        .unwrap();
-    let b = server
-        .load::<MeshAsset, _>("proc://b", |_| Ok(MeshAsset::new("B")))
-        .unwrap();
+    let a = server.load::<MeshAsset, _>("proc://a", |_| Ok(MeshAsset::new("A"))).unwrap();
+    let b = server.load::<MeshAsset, _>("proc://b", |_| Ok(MeshAsset::new("B"))).unwrap();
     assert_eq!(a.name, "A");
     assert_eq!(b.name, "B");
 }
@@ -45,16 +41,16 @@ fn load_different_paths_does_not_collide() {
 #[test]
 fn load_different_types_at_same_path_are_independent() {
     let server = AssetServer::new();
-    let mesh = server
-        .load::<MeshAsset, _>("key", |_| Ok(MeshAsset::new("m")))
-        .unwrap();
+    let mesh = server.load::<MeshAsset, _>("key", |_| Ok(MeshAsset::new("m"))).unwrap();
     let mat = server
-        .load::<MaterialAsset, _>("key", |_| Ok(MaterialAsset {
-            name: "mat".into(),
-            base_color: [1.0, 0.0, 0.0, 1.0],
-            metallic: 0.0,
-            roughness: 1.0,
-        }))
+        .load::<MaterialAsset, _>("key", |_| {
+            Ok(MaterialAsset {
+                name: "mat".into(),
+                base_color: [1.0, 0.0, 0.0, 1.0],
+                metallic: 0.0,
+                roughness: 1.0,
+            })
+        })
         .unwrap();
     assert_eq!(mesh.name, "m");
     assert_eq!(mat.name, "mat");
@@ -63,24 +59,19 @@ fn load_different_types_at_same_path_are_independent() {
 #[test]
 fn load_propagates_loader_error() {
     let server = AssetServer::new();
-    let result = server.load::<MeshAsset, _>("broken", |_| {
-        Err(AssetLoadError::Parse("boom".into()))
-    });
+    let result =
+        server.load::<MeshAsset, _>("broken", |_| Err(AssetLoadError::Parse("boom".into())));
     assert!(matches!(result, Err(AssetLoadError::Parse(_))));
 }
 
 #[test]
 fn clear_drops_cache() {
     let server = AssetServer::new();
-    let _ = server
-        .load::<MeshAsset, _>("a", |_| Ok(MeshAsset::new("a")))
-        .unwrap();
+    let _ = server.load::<MeshAsset, _>("a", |_| Ok(MeshAsset::new("a"))).unwrap();
     server.clear();
     // We can still load again, the cache miss path should rerun the
     // loader closure.
-    let again = server
-        .load::<MeshAsset, _>("a", |_| Ok(MeshAsset::new("a")))
-        .unwrap();
+    let again = server.load::<MeshAsset, _>("a", |_| Ok(MeshAsset::new("a"))).unwrap();
     assert_eq!(again.name, "a");
 }
 
@@ -103,8 +94,6 @@ fn nonexistent_loader_path_is_not_called_for_known_extension() {
     // the loader closure is provided. The path is purely a cache key.
     let _ = Path::new("does_not_exist.glb");
     let server = AssetServer::new();
-    let r = server
-        .load::<MeshAsset, _>("does_not_exist.glb", |_| Ok(MeshAsset::new("v")))
-        .unwrap();
+    let r = server.load::<MeshAsset, _>("does_not_exist.glb", |_| Ok(MeshAsset::new("v"))).unwrap();
     assert_eq!(r.name, "v");
 }
