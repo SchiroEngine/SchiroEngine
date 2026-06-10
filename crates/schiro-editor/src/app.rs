@@ -64,6 +64,10 @@ pub struct EditorApp {
     pub current_tool: EditorTool,
     /// `true` when the runtime is in play mode.
     pub playing: bool,
+    /// Undo command stack.
+    pub undo_stack: Vec<crate::command::Command>,
+    /// Redo command stack.
+    pub redo_stack: Vec<crate::command::Command>,
 }
 
 /// Gizmo tool currently selected in the toolbar.
@@ -84,6 +88,8 @@ pub struct GizmoDrag {
     pub axis: usize,
     /// Entity being transformed.
     pub entity: Entity,
+    /// Transform snapshot taken before the drag began, used for undo.
+    pub start_transform: Transform,
 }
 
 impl EditorApp {
@@ -113,6 +119,8 @@ impl EditorApp {
             gizmo_drag: None,
             current_tool: EditorTool::Translate,
             playing: false,
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
         };
 
         crate::theme::apply_dark_theme(&app.egui_ctx);
@@ -140,6 +148,40 @@ impl EditorApp {
                 _ => return,
             };
             let raw = state.take_egui_input(window);
+
+            // Global keyboard shortcuts (before egui consumes them).
+            for event in &raw.events {
+                if let winit::event::Event::WindowEvent { event, .. } = event {
+                    match event {
+                        winit::event::WindowEvent::KeyboardInput { event, .. } => {
+                            if event.state == winit::event::ElementState::Pressed {
+                                if event.modifiers_state.control_key() {
+                                    match event.logical_key {
+                                        winit::keyboard::Key::Named(
+                                            winit::keyboard::NamedKey::KeyZ,
+                                        ) => self.undo(),
+                                        winit::keyboard::Key::Named(
+                                            winit::keyboard::NamedKey::KeyY,
+                                        ) => self.redo(),
+                                        winit::keyboard::Key::Character(ch) if ch == "z" => {
+                                            self.undo()
+                                        }
+                                        winit::keyboard::Key::Character(ch) if ch == "y" => {
+                                            self.redo()
+                                        }
+                                        winit::keyboard::Key::Character(ch) if ch == "d" => {
+                                            self.duplicate_entity()
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
             ctx.run(raw, |ctx| self.build_editor_ui(ctx))
         };
 

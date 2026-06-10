@@ -42,14 +42,29 @@ pub fn handle_viewport_input(app: &mut EditorApp, aspect: f32) {
                 let pos = app.get_entity_transform(entity).translation;
                 let (axis, _) = pick_gizmo_axis(&ray, pos, app.current_tool);
                 if axis < 3 {
-                    app.gizmo_drag = Some(GizmoDrag { axis, entity });
+                    let start = app.get_entity_transform(entity);
+                    app.gizmo_drag = Some(GizmoDrag { axis, entity, start_transform: start });
                 }
             }
         }
     }
 
     if !app.viewport_panel.gizmo_held {
-        app.gizmo_drag = None;
+        if let Some(drag) = app.gizmo_drag.take() {
+            let end = app.get_entity_transform(drag.entity);
+            if end != drag.start_transform {
+                let cmd = crate::command::Command::SetTransform {
+                    entity: drag.entity,
+                    before: (
+                        drag.start_transform.translation,
+                        drag.start_transform.rotation,
+                        drag.start_transform.scale,
+                    ),
+                    after: (end.translation, end.rotation, end.scale),
+                };
+                app.push_command(cmd);
+            }
+        }
     }
 
     if let Some((x, y)) = clicked {

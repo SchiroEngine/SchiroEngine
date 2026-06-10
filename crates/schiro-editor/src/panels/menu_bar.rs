@@ -54,8 +54,19 @@ impl EditorApp {
                         }
                     });
                     ui.menu_button("Edit", |ui| {
-                        if ui.button("Undo").clicked() {}
-                        if ui.button("Redo").clicked() {}
+                        if ui.button("Undo  [Ctrl+Z]").clicked() {
+                            self.undo();
+                            ui.close_menu();
+                        }
+                        if ui.button("Redo  [Ctrl+Y]").clicked() {
+                            self.redo();
+                            ui.close_menu();
+                        }
+                        ui.separator();
+                        if ui.button("Duplicate  [Ctrl+D]").clicked() {
+                            self.duplicate_entity();
+                            ui.close_menu();
+                        }
                     });
                 });
             });

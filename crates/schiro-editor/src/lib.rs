@@ -22,6 +22,7 @@
 
 pub mod app;
 pub mod browser;
+pub mod command;
 pub mod editor;
 pub mod hierarchy;
 pub mod inspector;

@@ -1,12 +1,12 @@
-//! Inspector panel (Blender-style). Sections use plain
-//! [`egui::CollapsingHeader`] without a helper closure so the
-//! borrow checker stays happy.
+//! Inspector panel (Blender-style). Records undo commands on
+//! every mutation.
 
 use bevy_ecs::prelude::*;
 use glam::Quat;
 use schiro_ecs::components::{Name, Rotator, Transform};
 
 use crate::app::EditorApp;
+use crate::command::Command;
 
 impl EditorApp {
     pub fn build_inspector_panel(&mut self, ctx: &egui::Context) {
@@ -90,11 +90,8 @@ impl EditorApp {
     }
 
     fn draw_name_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        let label = match self.world.get::<Name>(entity) {
-            Some(n) => n.0.clone(),
-            None => format!("Entity {}", entity.index()),
-        };
-        let mut next = label.clone();
+        let before = self.get_entity_name(entity);
+        let mut next = before.clone();
         if ui
             .add(
                 egui::TextEdit::singleline(&mut next)
@@ -102,18 +99,24 @@ impl EditorApp {
                     .desired_width(ui.available_width()),
             )
             .lost_focus()
-            && next != label
+            && next != before
         {
             if let Some(mut n) = self.world.get_mut::<Name>(entity) {
-                n.0 = next;
+                let old = n.0.clone();
+                n.0 = next.clone();
+                self.push_command(Command::SetName { entity, before: old, after: next });
             } else {
-                self.world.entity_mut(entity).insert(Name(next));
+                self.world.entity_mut(entity).insert(Name(next.clone()));
+                self.push_command(Command::SetName { entity, before: String::new(), after: next });
             }
         }
     }
 
     fn draw_translation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        let Some(mut t) = self.world.get_mut::<Transform>(entity) else { return };
+        let start = match self.world.get::<Transform>(entity) {
+            Some(t) => (t.translation, t.rotation, t.scale),
+            None => return,
+        };
         let labels = ["X", "Y", "Z"];
         for i in 0..3 {
             ui.horizontal(|ui| {
@@ -123,14 +126,26 @@ impl EditorApp {
                         .size(11.0)
                         .monospace(),
                 );
-                ui.add(egui::DragValue::new(&mut t.translation[i]).speed(0.05).max_decimals(3));
+                if let Some(mut t) = self.world.get_mut::<Transform>(entity) {
+                    ui.add(egui::DragValue::new(&mut t.translation[i]).speed(0.05).max_decimals(3));
+                }
             });
+        }
+        let end = match self.world.get::<Transform>(entity) {
+            Some(t) => (t.translation, t.rotation, t.scale),
+            None => return,
+        };
+        if end != start {
+            self.push_command(Command::SetTransform { entity, before: start, after: end });
         }
     }
 
     fn draw_rotation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        let Some(mut t) = self.world.get_mut::<Transform>(entity) else { return };
-        let (yaw, pitch, roll) = t.rotation.to_euler(glam::EulerRot::YXZ);
+        let start = match self.world.get::<Transform>(entity) {
+            Some(t) => (t.translation, t.rotation, t.scale),
+            None => return,
+        };
+        let (yaw, pitch, roll) = start.1.to_euler(glam::EulerRot::YXZ);
         let mut deg = [yaw.to_degrees(), pitch.to_degrees(), roll.to_degrees()];
         let labels = ["Y", "X", "Z"];
         for i in 0..3 {
@@ -146,16 +161,28 @@ impl EditorApp {
                 );
             });
         }
-        t.rotation = Quat::from_euler(
-            glam::EulerRot::YXZ,
-            deg[0].to_radians(),
-            deg[1].to_radians(),
-            deg[2].to_radians(),
-        );
+        if let Some(mut t) = self.world.get_mut::<Transform>(entity) {
+            t.rotation = Quat::from_euler(
+                glam::EulerRot::YXZ,
+                deg[0].to_radians(),
+                deg[1].to_radians(),
+                deg[2].to_radians(),
+            );
+        }
+        let end = match self.world.get::<Transform>(entity) {
+            Some(t) => (t.translation, t.rotation, t.scale),
+            None => return,
+        };
+        if end != start {
+            self.push_command(Command::SetTransform { entity, before: start, after: end });
+        }
     }
 
     fn draw_scale_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        let Some(mut t) = self.world.get_mut::<Transform>(entity) else { return };
+        let start = match self.world.get::<Transform>(entity) {
+            Some(t) => (t.translation, t.rotation, t.scale),
+            None => return,
+        };
         let labels = ["X", "Y", "Z"];
         for i in 0..3 {
             ui.horizontal(|ui| {
@@ -165,13 +192,22 @@ impl EditorApp {
                         .size(11.0)
                         .monospace(),
                 );
-                ui.add(
-                    egui::DragValue::new(&mut t.scale[i])
-                        .speed(0.02)
-                        .range(0.001..=1000.0)
-                        .max_decimals(3),
-                );
+                if let Some(mut t) = self.world.get_mut::<Transform>(entity) {
+                    ui.add(
+                        egui::DragValue::new(&mut t.scale[i])
+                            .speed(0.02)
+                            .range(0.001..=1000.0)
+                            .max_decimals(3),
+                    );
+                }
             });
+        }
+        let end = match self.world.get::<Transform>(entity) {
+            Some(t) => (t.translation, t.rotation, t.scale),
+            None => return,
+        };
+        if end != start {
+            self.push_command(Command::SetTransform { entity, before: start, after: end });
         }
     }
 
@@ -182,7 +218,7 @@ impl EditorApp {
             ui.allocate_exact_size(egui::vec2(ui.available_width(), 22.0), egui::Sense::click());
         if ui.is_rect_visible(rect) {
             let fill =
-                if has { crate::theme::hover() } else { Color32::from_rgb(0x28, 0x28, 0x2C) };
+                if has { crate::theme::hover() } else { egui::Color32::from_rgb(0x28, 0x28, 0x2C) };
             ui.painter().rect_filled(rect, egui::CornerRadius::same(3), fill);
             ui.painter().text(
                 rect.left_center() + egui::vec2(8.0, 0.0),
@@ -195,12 +231,17 @@ impl EditorApp {
         if resp.clicked() {
             let mut em = self.world.entity_mut(entity);
             if has {
+                let speed = em.get::<Rotator>().map(|r| r.speed).unwrap_or(glam::Vec3::ONE);
                 em.remove::<Rotator>();
+                self.push_command(Command::ToggleRotator { entity, added: false, speed });
             } else {
                 em.insert(Rotator::default());
+                self.push_command(Command::ToggleRotator {
+                    entity,
+                    added: true,
+                    speed: glam::Vec3::ONE,
+                });
             }
         }
     }
 }
-
-use egui::Color32;
