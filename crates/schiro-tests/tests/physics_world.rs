@@ -27,8 +27,9 @@ fn physics_world_step_updates_dt() {
     let mut w = PhysicsWorld::new();
     w.step(0.016);
     // The integration parameter is private, but stepping should not
-    // panic and the world should remain queryable.
-    assert!(w.rigid_bodies().iter().next().is_none() || true);
+    // panic and the world should remain queryable. A freshly created
+    // world has no rigid bodies, so the iteration is empty.
+    assert!(w.rigid_bodies().iter().next().is_none());
 }
 
 #[test]

@@ -23,9 +23,17 @@ authors = ["Gab", "Vekoo"]
 unused_must_use = "warn"
 
 [workspace.lints.clippy]
-pedantic = "warn"
-nursery = "warn"
-cargo = "warn"
+# pedantic and nursery are intentionally left at their default
+# (allow) level: they generate a lot of stylistic noise and slow
+# down development. Individual lints that the project does want to
+# enforce are listed below.
+correctness = "warn"
+suspicious = "warn"
+# Specific pedantic / nursery lints we do want to keep on.
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
 
 [workspace.dependencies]
 # ── Internal crates ──
