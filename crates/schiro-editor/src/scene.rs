@@ -33,9 +33,9 @@ pub struct EntityDesc {
     /// Rotator speed, in rad/s per axis. `None` when the entity
     /// has no [`Rotator`] component.
     pub rotator: Option<[f32; 3]>,
-    /// Procedural mesh descriptor. Required for every entity that
-    /// carries a [`MeshRenderer`].
-    pub mesh: MeshDesc,
+    /// Procedural mesh descriptor. `None` for empty / light
+    /// entities that have no [`MeshRenderer`].
+    pub mesh: Option<MeshDesc>,
 }
 
 /// Serializable description of a procedural mesh.
@@ -58,6 +58,10 @@ pub enum MeshDesc {
         /// Distance between two adjacent cells, in world units.
         spacing: f32,
     },
+    /// Unit cube.
+    Cube,
+    /// Unit quad on the XZ plane.
+    Plane,
 }
 
 const CURRENT_VERSION: u32 = 1;
@@ -82,17 +86,18 @@ impl EditorApp {
             let has_renderer = self.world.get::<schiro_ecs::components::MeshRenderer>(e).is_some();
             let mesh = if has_renderer {
                 if name.contains("Sphere") {
-                    MeshDesc::Sphere { segments: 32, rings: 16 }
+                    Some(MeshDesc::Sphere { segments: 32, rings: 16 })
                 } else if name.contains("Grid") {
-                    MeshDesc::Grid { rows: 10, cols: 10, spacing: 1.0 }
+                    Some(MeshDesc::Grid { rows: 10, cols: 10, spacing: 1.0 })
+                } else if name.contains("Cube") {
+                    Some(MeshDesc::Cube)
+                } else if name.contains("Plane") {
+                    Some(MeshDesc::Plane)
                 } else {
-                    // Fallback — any unknown entity gets a placeholder
-                    // sphere.  The real fix is a per-entity mesh ID
-                    // stored in a resource.
-                    MeshDesc::Sphere { segments: 16, rings: 8 }
+                    Some(MeshDesc::Sphere { segments: 16, rings: 8 })
                 }
             } else {
-                MeshDesc::Sphere { segments: 16, rings: 8 }
+                None
             };
             let _ = has_renderer;
 
@@ -130,15 +135,20 @@ impl EditorApp {
         self.clear_scene();
 
         for desc in &file.entities {
-            let mesh_data = mesh_desc_to_render(&desc.mesh);
             let transform = glam::Mat4::from_scale_rotation_translation(
                 glam::Vec3::from(desc.scale),
                 glam::Quat::from_array(desc.rotation),
                 glam::Vec3::from(desc.translation),
             );
-            let renderer = self.renderer.as_mut().ok_or(LoadError::NoRenderer)?;
-            let mi = renderer.mesh_count();
-            renderer.add_mesh(&mesh_data, &transform);
+            let mi = if let Some(ref mesh_desc) = desc.mesh {
+                let renderer = self.renderer.as_mut().ok_or(LoadError::NoRenderer)?;
+                let mesh_data = mesh_desc_to_render(mesh_desc);
+                let idx = renderer.mesh_count();
+                renderer.add_mesh(&mesh_data, &transform);
+                Some(idx)
+            } else {
+                None
+            };
 
             let mut entity_cmd = self.world.spawn((
                 schiro_ecs::components::Name(desc.name.clone()),
@@ -148,15 +158,22 @@ impl EditorApp {
                     scale: desc.scale.into(),
                 },
                 schiro_ecs::components::GlobalTransform::default(),
-                schiro_ecs::components::MeshRenderer { mesh_handle: Some(mi), visible: true },
             ));
+            if let Some(mi) = mi {
+                entity_cmd.insert(schiro_ecs::components::MeshRenderer {
+                    mesh_handle: Some(mi),
+                    visible: true,
+                });
+            }
             if let Some(speed) = desc.rotator {
                 entity_cmd
                     .insert(schiro_ecs::components::Rotator { speed: glam::Vec3::from(speed) });
             }
             let entity = entity_cmd.id();
             self.scene_entities.push(entity);
-            self.entity_mesh_map.insert(entity, mi);
+            if let Some(mi) = mi {
+                self.entity_mesh_map.insert(entity, mi);
+            }
         }
 
         // The gizmo mesh count is recomputed after clearing in
@@ -215,6 +232,8 @@ fn mesh_desc_to_render(desc: &MeshDesc) -> schiro_render::Mesh {
             asset_to_render_mesh(&asset)
         }
         MeshDesc::Grid { rows, cols, spacing } => schiro_render::Mesh::grid(rows, cols, spacing),
+        MeshDesc::Cube => schiro_render::Mesh::cube(),
+        MeshDesc::Plane => schiro_render::Mesh::plane(),
     }
 }
 

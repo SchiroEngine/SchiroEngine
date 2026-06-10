@@ -182,6 +182,40 @@ impl Mesh {
         Self::cube_at_y(0.0)
     }
 
+    /// Builds a unit quad on the XZ plane, centered at the origin.
+    pub fn plane() -> Self {
+        let mut mesh = Self::new("Plane");
+        let n = [0.0, 1.0, 0.0];
+        let t = tangent_from_normal(n);
+        let half = 0.5;
+        mesh.vertices.push(Vertex {
+            position: [-half, 0.0, -half],
+            normal: n,
+            uv: [0.0, 0.0],
+            tangent: t,
+        });
+        mesh.vertices.push(Vertex {
+            position: [half, 0.0, -half],
+            normal: n,
+            uv: [1.0, 0.0],
+            tangent: t,
+        });
+        mesh.vertices.push(Vertex {
+            position: [half, 0.0, half],
+            normal: n,
+            uv: [1.0, 1.0],
+            tangent: t,
+        });
+        mesh.vertices.push(Vertex {
+            position: [-half, 0.0, half],
+            normal: n,
+            uv: [0.0, 1.0],
+            tangent: t,
+        });
+        mesh.indices = vec![0, 1, 2, 0, 2, 3];
+        mesh
+    }
+
     /// Builds a unit cube with its lowest face at `y = y_offset`.
     pub fn cube_at_y(y_offset: f32) -> Self {
         let mut mesh = Self::new("Cube");

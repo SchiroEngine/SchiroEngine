@@ -206,6 +206,55 @@ impl EditorApp {
         }
     }
 
+    /// Pushes scene_entities + mesh_map for an entity that already has
+    /// a GPU mesh uploaded.
+    pub fn register_scene_entity(&mut self, entity: Entity, mesh_index: usize) {
+        self.scene_entities.push(entity);
+        self.entity_mesh_map.insert(entity, mesh_index);
+        self.selected_entity = Some(entity);
+    }
+
+    /// Spawns a procedural mesh entity with an optional Rotator.
+    pub fn add_mesh_entity(
+        &mut self,
+        name: impl Into<String>,
+        mesh: &schiro_render::Mesh,
+        translation: glam::Vec3,
+        rotator: Option<glam::Vec3>,
+    ) {
+        let renderer = match self.renderer.as_mut() {
+            Some(r) => r,
+            None => return,
+        };
+        let transform =
+            glam::Mat4::from_scale_rotation_translation(glam::Vec3::ONE, glam::Quat::IDENTITY, translation);
+        renderer.add_mesh(mesh, &transform);
+        let mi = renderer.mesh_count() - 1;
+
+        let mut cmd = self.world.spawn((
+            schiro_ecs::components::Name(name.into()),
+            Transform { translation, ..Default::default() },
+            schiro_ecs::components::GlobalTransform::default(),
+            schiro_ecs::components::MeshRenderer { mesh_handle: Some(mi), visible: true },
+        ));
+        if let Some(speed) = rotator {
+            cmd.insert(schiro_ecs::components::Rotator { speed });
+        }
+        let entity = cmd.id();
+        self.register_scene_entity(entity, mi);
+    }
+
+    /// Spawns an empty entity (Transform + Name, no mesh, no Rotator).
+    pub fn add_empty(&mut self, name: impl Into<String>, translation: glam::Vec3) {
+        let entity = self.world.spawn((
+            schiro_ecs::components::Name(name.into()),
+            Transform { translation, ..Default::default() },
+            schiro_ecs::components::GlobalTransform::default(),
+        )).id();
+        self.scene_entities.push(entity);
+        self.selected_entity = Some(entity);
+    }
+
     /// Returns the human readable name of an entity, falling back to
     /// `Entity <id>` for unnamed entities.
     pub fn get_entity_name(&self, entity: Entity) -> String {
