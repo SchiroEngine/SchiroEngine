@@ -148,41 +148,23 @@ impl EditorApp {
                 _ => return,
             };
             let raw = state.take_egui_input(window);
-
-            // Global keyboard shortcuts (before egui consumes them).
-            for event in &raw.events {
-                if let winit::event::Event::WindowEvent { event, .. } = event {
-                    match event {
-                        winit::event::WindowEvent::KeyboardInput { event, .. } => {
-                            if event.state == winit::event::ElementState::Pressed {
-                                if event.modifiers_state.control_key() {
-                                    match event.logical_key {
-                                        winit::keyboard::Key::Named(
-                                            winit::keyboard::NamedKey::KeyZ,
-                                        ) => self.undo(),
-                                        winit::keyboard::Key::Named(
-                                            winit::keyboard::NamedKey::KeyY,
-                                        ) => self.redo(),
-                                        winit::keyboard::Key::Character(ch) if ch == "z" => {
-                                            self.undo()
-                                        }
-                                        winit::keyboard::Key::Character(ch) if ch == "y" => {
-                                            self.redo()
-                                        }
-                                        winit::keyboard::Key::Character(ch) if ch == "d" => {
-                                            self.duplicate_entity()
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                            }
+            ctx.run(raw, |ctx| {
+                // Global keyboard shortcuts.
+                ctx.input_mut(|i| {
+                    if i.modifiers.ctrl {
+                        if i.consume_key(egui::Modifiers::CTRL, egui::Key::Z) {
+                            self.undo();
                         }
-                        _ => {}
+                        if i.consume_key(egui::Modifiers::CTRL, egui::Key::Y) {
+                            self.redo();
+                        }
+                        if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
+                            self.duplicate_entity();
+                        }
                     }
-                }
-            }
-
-            ctx.run(raw, |ctx| self.build_editor_ui(ctx))
+                });
+                self.build_editor_ui(ctx)
+            })
         };
 
         if let (Some(s), Some(w)) = (self.egui_winit_state.as_mut(), self.window.as_ref()) {
