@@ -1,7 +1,7 @@
 //! Menu bar and toolbar (Blender-style).
 
 use crate::app::{EditorApp, EditorTool};
-
+use crate::icons::{draw_icon, Icon};
 use crate::scene::mesh_desc_to_render;
 
 impl EditorApp {
@@ -91,13 +91,15 @@ impl EditorApp {
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.add_space(4.0);
-                    self.draw_tool_button(ui, "\u{2194}", "Translate", EditorTool::Translate);
-                    self.draw_tool_button(ui, "\u{21BB}", "Rotate", EditorTool::Rotate);
-                    self.draw_tool_button(ui, "\u{25A1}", "Scale", EditorTool::Scale);
+                    self.draw_tool_button(
+                        ui,
+                        Icon::ToolTranslate,
+                        "Translate",
+                        EditorTool::Translate,
+                    );
+                    self.draw_tool_button(ui, Icon::ToolRotate, "Rotate", EditorTool::Rotate);
+                    self.draw_tool_button(ui, Icon::ToolScale, "Scale", EditorTool::Scale);
                     ui.add_space(8.0);
-                    ui.separator();
-                    ui.add_space(8.0);
-
                     ui.separator();
                     ui.add_space(8.0);
 
@@ -113,13 +115,7 @@ impl EditorApp {
                         if fill != Color32::TRANSPARENT {
                             ui.painter().rect_filled(wpr, egui::CornerRadius::same(3), fill);
                         }
-                        ui.painter().text(
-                            wpr.center(),
-                            egui::Align2::CENTER_CENTER,
-                            "\u{25A8}",
-                            egui::FontId::proportional(13.0),
-                            if self.wireframe { Color32::WHITE } else { crate::theme::text_dim() },
-                        );
+                        draw_icon(ui.painter(), wpr.shrink(2.0), Icon::Wireframe);
                     }
                     if wrp.clicked() {
                         self.wireframe = !self.wireframe;
@@ -135,12 +131,13 @@ impl EditorApp {
                             Color32::from_rgb(0x2D, 0x6E, 0x3A)
                         };
                         ui.painter().rect_filled(pr, egui::CornerRadius::same(3), fill);
-                        let icon = if self.playing { "\u{25A0}" } else { "\u{25B6}" };
+                        let play_icon = if self.playing { Icon::Stop } else { Icon::Play };
+                        draw_icon(ui.painter(), pr, play_icon);
                         let lbl = if self.playing { " Stop" } else { " Play" };
                         ui.painter().text(
-                            pr.center(),
-                            egui::Align2::CENTER_CENTER,
-                            format!("{}{}", icon, lbl),
+                            pr.center() + egui::vec2(4.0, 0.0),
+                            egui::Align2::LEFT_CENTER,
+                            format!("{}", lbl),
                             egui::FontId::proportional(12.0),
                             Color32::WHITE,
                         );
@@ -234,7 +231,7 @@ impl EditorApp {
     pub fn draw_tool_button(
         &mut self,
         ui: &mut egui::Ui,
-        icon: &str,
+        icon: crate::icons::Icon,
         label: &str,
         tool: EditorTool,
     ) {
@@ -252,13 +249,7 @@ impl EditorApp {
             if fill != Color32::TRANSPARENT {
                 ui.painter().rect_filled(rect, egui::CornerRadius::same(3), fill);
             }
-            ui.painter().text(
-                rect.center(),
-                egui::Align2::CENTER_CENTER,
-                icon,
-                egui::FontId::proportional(14.0),
-                if selected { Color32::WHITE } else { crate::theme::text_dim() },
-            );
+            crate::icons::draw_icon(ui.painter(), rect.shrink(2.0), icon);
         }
         if response.clicked() {
             self.current_tool = tool;
