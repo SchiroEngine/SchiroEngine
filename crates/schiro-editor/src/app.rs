@@ -292,10 +292,19 @@ impl EditorApp {
         self.selected_entity = Some(entity);
     }
 
-    /// Deletes the currently selected entity: removes it from the
-    /// ECS world, the scene entity list and the mesh map.
+    /// Deletes the currently selected entity: hides its GPU mesh
+    /// (zero-scale transform), removes it from the ECS world, the
+    /// scene entity list and the mesh map.
     pub fn delete_selected(&mut self) {
         let Some(entity) = self.selected_entity else { return };
+
+        // Hide the GPU mesh by setting its transform to zero scale.
+        if let Some(&idx) = self.entity_mesh_map.get(&entity) {
+            if let Some(ref renderer) = self.renderer {
+                renderer.update_mesh_transform(idx, &glam::Mat4::from_scale(glam::Vec3::ZERO));
+            }
+        }
+
         self.entity_mesh_map.remove(&entity);
         self.scene_entities.retain(|&e| e != entity);
         self.world.entity_mut(entity).despawn();
