@@ -1,8 +1,7 @@
-//! Hierarchy panel: lists every scene entity and lets the user
-//! select one by clicking. The selected row shows an orange accent
-//! bar on the left (Blender-style).
+//! Hierarchy panel with painter-based entity icons.
 
 use crate::app::EditorApp;
+use crate::icons::{draw_icon, icon_for_entity, Icon};
 
 impl EditorApp {
     pub fn build_hierarchy_panel(&mut self, ctx: &egui::Context) {
@@ -56,10 +55,11 @@ impl EditorApp {
                                 );
                                 return;
                             }
+                            let p = ui.painter().clone();
                             for &entity in &self.scene_entities.clone() {
                                 let name = self.get_entity_name(entity);
                                 let selected = self.selected_entity == Some(entity);
-                                let icon = crate::theme::entity_icon(&name);
+                                let icon = icon_for_entity(&name);
                                 let (rect, resp) = ui.allocate_exact_size(
                                     egui::vec2(ui.available_width(), 22.0),
                                     egui::Sense::click(),
@@ -73,27 +73,24 @@ impl EditorApp {
                                         egui::Color32::TRANSPARENT
                                     };
                                     if bg != egui::Color32::TRANSPARENT {
-                                        ui.painter().rect_filled(
-                                            rect,
-                                            egui::CornerRadius::ZERO,
-                                            bg,
-                                        );
+                                        p.rect_filled(rect, egui::CornerRadius::ZERO, bg);
                                     }
                                     if selected {
                                         let bar = egui::Rect::from_min_size(
                                             rect.left_top(),
                                             egui::vec2(3.0, rect.height()),
                                         );
-                                        ui.painter().rect_filled(
+                                        p.rect_filled(
                                             bar,
                                             egui::CornerRadius::ZERO,
                                             crate::theme::accent_color(),
                                         );
                                     }
-                                    ui.painter().text(
-                                        rect.left_center() + egui::vec2(14.0, 0.0),
+                                    draw_icon(&p, rect, icon);
+                                    p.text(
+                                        rect.left_center() + egui::vec2(24.0, 0.0),
                                         egui::Align2::LEFT_CENTER,
-                                        format!("{}  {}", icon, name),
+                                        name,
                                         egui::FontId::proportional(12.0),
                                         if selected {
                                             crate::theme::text_bright()
@@ -112,37 +109,59 @@ impl EditorApp {
     }
 
     fn draw_add_entity_menu(&mut self, ui: &mut egui::Ui) {
-        if ui.button("\u{25A0}  Cube").clicked() {
-            self.add_mesh_entity(
-                "Cube",
-                &schiro_render::Mesh::cube(),
-                glam::Vec3::new(0.0, 0.5, 0.0),
-                None,
-            );
-            ui.close_menu();
-        }
-        if ui.button("\u{25CB}  Sphere").clicked() {
-            let mesh = render_to_mesh(&schiro_assets::procedural::create_sphere(1.0, 32, 16));
-            self.add_mesh_entity(
-                "Sphere",
-                &mesh,
-                glam::Vec3::new(0.0, 1.5, 0.0),
-                Some(glam::Vec3::new(0.0, 1.5, 0.0)),
-            );
-            ui.close_menu();
-        }
-        if ui.button("\u{25A1}  Plane").clicked() {
-            self.add_mesh_entity("Plane", &schiro_render::Mesh::plane(), glam::Vec3::ZERO, None);
-            ui.close_menu();
-        }
-        ui.separator();
-        if ui.button("\u{2606}  Directional Light").clicked() {
-            self.add_empty("Directional Light", glam::Vec3::new(0.0, 3.0, 0.0));
-            ui.close_menu();
-        }
-        if ui.button("\u{25CB}  Empty").clicked() {
-            self.add_empty("Empty", glam::Vec3::ZERO);
-            ui.close_menu();
+        let items: &[(Icon, &str, fn(&mut EditorApp))] = &[
+            (Icon::Cube, "Cube", |s| {
+                s.add_mesh_entity(
+                    "Cube",
+                    &schiro_render::Mesh::cube(),
+                    glam::Vec3::new(0.0, 0.5, 0.0),
+                    None,
+                )
+            }),
+            (Icon::Sphere, "Sphere", |s| {
+                let m = render_to_mesh(&schiro_assets::procedural::create_sphere(1.0, 32, 16));
+                s.add_mesh_entity(
+                    "Sphere",
+                    &m,
+                    glam::Vec3::new(0.0, 1.5, 0.0),
+                    Some(glam::Vec3::new(0.0, 1.5, 0.0)),
+                );
+            }),
+            (Icon::Plane, "Plane", |s| {
+                s.add_mesh_entity("Plane", &schiro_render::Mesh::plane(), glam::Vec3::ZERO, None)
+            }),
+            (Icon::Light, "Directional Light", |s| {
+                s.add_empty("Directional Light", glam::Vec3::new(0.0, 3.0, 0.0))
+            }),
+            (Icon::Empty, "Empty", |s| s.add_empty("Empty", glam::Vec3::ZERO)),
+        ];
+        for (i, (icon, label, action)) in items.iter().enumerate() {
+            if i == 3 {
+                ui.separator();
+            }
+            let (rect, resp) = ui
+                .allocate_exact_size(egui::vec2(ui.available_width(), 20.0), egui::Sense::click());
+            if ui.is_rect_visible(rect) {
+                if resp.hovered() {
+                    ui.painter().rect_filled(
+                        rect,
+                        egui::CornerRadius::same(3),
+                        crate::theme::hover(),
+                    );
+                }
+                draw_icon(ui.painter(), rect.shrink(2.0), *icon);
+                ui.painter().text(
+                    rect.left_center() + egui::vec2(26.0, 0.0),
+                    egui::Align2::LEFT_CENTER,
+                    *label,
+                    egui::FontId::proportional(12.0),
+                    crate::theme::text_bright(),
+                );
+            }
+            if resp.clicked() {
+                action(self);
+                ui.close_menu();
+            }
         }
     }
 }
@@ -150,13 +169,12 @@ impl EditorApp {
 fn render_to_mesh(asset: &schiro_assets::types::MeshAsset) -> schiro_render::Mesh {
     let mut mesh = schiro_render::Mesh::new(&asset.name);
     for i in 0..asset.positions.len() {
-        let tangent =
-            if i < asset.tangents.len() { asset.tangents[i] } else { [1.0, 0.0, 0.0, 1.0] };
+        let t = if i < asset.tangents.len() { asset.tangents[i] } else { [1.0, 0.0, 0.0, 1.0] };
         mesh.vertices.push(schiro_render::mesh::Vertex {
             position: asset.positions[i],
             normal: if i < asset.normals.len() { asset.normals[i] } else { [0.0, 1.0, 0.0] },
             uv: if i < asset.uvs.len() { asset.uvs[i] } else { [0.0, 0.0] },
-            tangent,
+            tangent: t,
         });
     }
     mesh.indices = asset.indices.clone();
