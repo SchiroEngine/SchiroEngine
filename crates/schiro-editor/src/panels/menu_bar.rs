@@ -17,15 +17,38 @@ impl EditorApp {
                     ui.menu_button("File", |ui| {
                         if ui.button("New Scene").clicked() {
                             self.clear_scene();
+                            self.project.path = std::path::PathBuf::new();
                             ui.close_menu();
                         }
                         if ui.button("Open Scene").clicked() {
-                            self.load_scene("scene.srn-scene").ok();
                             ui.close_menu();
+                            if let Some(path) = rfd::FileDialog::new()
+                                .add_filter("SchiroEngine scene", &["srn-scene", "srn"])
+                                .pick_file()
+                            {
+                                if let Err(e) = self.load_scene(&path) {
+                                    tracing::error!("load failed: {e}");
+                                } else {
+                                    self.project.path = path;
+                                }
+                            }
                         }
                         if ui.button("Save Scene").clicked() {
-                            self.save_scene("scene.srn-scene").ok();
                             ui.close_menu();
+                            let path = if self.project.path.as_os_str().is_empty() {
+                                rfd::FileDialog::new()
+                                    .add_filter("SchiroEngine scene", &["srn-scene"])
+                                    .save_file()
+                            } else {
+                                Some(self.project.path.clone())
+                            };
+                            if let Some(ref p) = path {
+                                if let Err(e) = self.save_scene(p) {
+                                    tracing::error!("save failed: {e}");
+                                } else {
+                                    self.project.path = p.clone();
+                                }
+                            }
                         }
                         ui.separator();
                         if ui.button("Exit").clicked() {

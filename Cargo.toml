@@ -87,5 +87,6 @@ bytemuck = { version = "1.0", features = ["derive"] }
 image = "0.25"
 half = "2.4"
 tokio = { version = "1.0", features = ["full"] }
+rfd = "0.15"
 async-channel = "2.0"
 futures-util = "0.3"
