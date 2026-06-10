@@ -18,6 +18,9 @@ schiro-assets.workspace = true
 schiro-audio.workspace = true
 schiro-physics.workspace = true
 schiro-input.workspace = true
+schiro-scene.workspace = true
+schiro-camera.workspace = true
+schiro-ui.workspace = true
 bevy_ecs.workspace = true
 
 egui.workspace = true

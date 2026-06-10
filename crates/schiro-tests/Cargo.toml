@@ -18,12 +18,14 @@ schiro-physics = { workspace = true }
 schiro-render = { workspace = true }
 schiro-input = { workspace = true }
 schiro-audio = { workspace = true }
+schiro-scene = { workspace = true }
+schiro-camera = { workspace = true }
 
 bevy_ecs.workspace = true
 bevy_hierarchy.workspace = true
 winit.workspace = true
 glam.workspace = true
-serde = { workspace = true, features = ["derive"] }
+serde.workspace = true
 serde_json.workspace = true
 bytemuck.workspace = true
 

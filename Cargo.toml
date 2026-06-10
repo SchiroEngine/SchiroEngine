@@ -9,6 +9,9 @@ members = [
     "crates/schiro-input",
     "crates/schiro-editor",
     "crates/schiro-tests",
+    "crates/schiro-scene",
+    "crates/schiro-camera",
+    "crates/schiro-ui",
 ]
 resolver = "2"
 
@@ -44,6 +47,9 @@ schiro-assets = { path = "crates/schiro-assets" }
 schiro-audio = { path = "crates/schiro-audio" }
 schiro-physics = { path = "crates/schiro-physics" }
 schiro-input = { path = "crates/schiro-input" }
+schiro-scene = { path = "crates/schiro-scene" }
+schiro-camera = { path = "crates/schiro-camera" }
+schiro-ui = { path = "crates/schiro-ui" }
 
 # ── Math ──
 glam = { version = "0.29", features = ["serde"] }

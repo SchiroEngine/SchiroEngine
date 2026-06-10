@@ -9,6 +9,7 @@ authors.workspace = true
 [dependencies]
 schiro-core.workspace = true
 schiro-ecs.workspace = true
+schiro-camera.workspace = true
 
 wgpu.workspace = true
 winit.workspace = true

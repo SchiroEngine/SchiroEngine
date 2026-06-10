@@ -3782,6 +3782,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "schiro-camera"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "glam",
+ "schiro-core",
+]
+
+[[package]]
 name = "schiro-core"
 version = "0.1.0"
 dependencies = [
@@ -3821,11 +3830,14 @@ dependencies = [
  "rfd",
  "schiro-assets",
  "schiro-audio",
+ "schiro-camera",
  "schiro-core",
  "schiro-ecs",
  "schiro-input",
  "schiro-physics",
  "schiro-render",
+ "schiro-scene",
+ "schiro-ui",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -3873,12 +3885,20 @@ dependencies = [
  "image",
  "parking_lot",
  "raw-window-handle",
+ "schiro-camera",
  "schiro-core",
  "schiro-ecs",
  "thiserror 2.0.18",
  "tracing",
  "wgpu",
  "winit",
+]
+
+[[package]]
+name = "schiro-scene"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -3891,14 +3911,23 @@ dependencies = [
  "glam",
  "schiro-assets",
  "schiro-audio",
+ "schiro-camera",
  "schiro-core",
  "schiro-ecs",
  "schiro-input",
  "schiro-physics",
  "schiro-render",
+ "schiro-scene",
  "serde",
  "serde_json",
  "winit",
+]
+
+[[package]]
+name = "schiro-ui"
+version = "0.1.0"
+dependencies = [
+ "egui",
 ]
 
 [[package]]

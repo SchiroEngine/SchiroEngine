@@ -2,7 +2,7 @@
 //! `CameraUniform` math helpers.
 
 use glam::{Mat4, Vec3, Vec4};
-use schiro_render::camera::CameraUniform;
+use schiro_camera::CameraUniform;
 use schiro_render::mesh::Mesh;
 
 mod common;

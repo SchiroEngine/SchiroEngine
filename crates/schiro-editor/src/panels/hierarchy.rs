@@ -5,19 +5,17 @@
 use crate::app::EditorApp;
 
 impl EditorApp {
-    /// Builds the left-hand hierarchy panel.
     pub fn build_hierarchy_panel(&mut self, ctx: &egui::Context) {
-        let frame = egui::Frame::new()
-            .fill(crate::theme::panel_header_bg())
-            .inner_margin(egui::Margin::same(0));
-
         egui::SidePanel::left("hierarchy_panel")
             .resizable(true)
             .default_width(260.0)
             .min_width(180.0)
-            .frame(frame)
+            .frame(
+                egui::Frame::new()
+                    .fill(crate::theme::panel_header_bg())
+                    .inner_margin(egui::Margin::same(0)),
+            )
             .show(ctx, |ui| {
-                // Header row.
                 egui::Frame::new()
                     .fill(crate::theme::panel_header_bg())
                     .inner_margin(egui::vec2(10.0, 5.0))
@@ -31,16 +29,16 @@ impl EditorApp {
                             );
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| ui.menu_button("+", |ui| self.draw_add_entity_menu(ui)),
+                                |ui| {
+                                    ui.menu_button("+", |ui| self.draw_add_entity_menu(ui));
+                                },
                             );
                         });
                     });
-
-                // Thin separator.
                 ui.painter().hline(
                     ui.available_rect_before_wrap().x_range(),
                     ui.cursor().top(),
-                    egui::Stroke::new(1.0, crate::theme::border()),
+                    egui::Stroke::new(1.0_f32, crate::theme::border()),
                 );
                 ui.add_space(1.0);
 
@@ -61,8 +59,7 @@ impl EditorApp {
                             for &entity in &self.scene_entities.clone() {
                                 let name = self.get_entity_name(entity);
                                 let selected = self.selected_entity == Some(entity);
-                                let icon = entity_icon(&name);
-
+                                let icon = crate::theme::entity_icon(&name);
                                 let (rect, resp) = ui.allocate_exact_size(
                                     egui::vec2(ui.available_width(), 22.0),
                                     egui::Sense::click(),
@@ -71,15 +68,17 @@ impl EditorApp {
                                     let bg = if selected {
                                         crate::theme::hover()
                                     } else if resp.hovered() {
-                                        Color32::from_rgb(0x30, 0x30, 0x35)
+                                        egui::Color32::from_rgb(0x30, 0x30, 0x35)
                                     } else {
-                                        Color32::TRANSPARENT
+                                        egui::Color32::TRANSPARENT
                                     };
-                                    if bg != Color32::TRANSPARENT {
-                                        ui.painter().rect_filled(rect, CornerRadius::ZERO, bg);
+                                    if bg != egui::Color32::TRANSPARENT {
+                                        ui.painter().rect_filled(
+                                            rect,
+                                            egui::CornerRadius::ZERO,
+                                            bg,
+                                        );
                                     }
-
-                                    // Orange accent bar on the left when selected.
                                     if selected {
                                         let bar = egui::Rect::from_min_size(
                                             rect.left_top(),
@@ -87,11 +86,10 @@ impl EditorApp {
                                         );
                                         ui.painter().rect_filled(
                                             bar,
-                                            CornerRadius::ZERO,
+                                            egui::CornerRadius::ZERO,
                                             crate::theme::accent_color(),
                                         );
                                     }
-
                                     ui.painter().text(
                                         rect.left_center() + egui::vec2(14.0, 0.0),
                                         egui::Align2::LEFT_CENTER,
@@ -113,7 +111,6 @@ impl EditorApp {
             });
     }
 
-    /// Menu drawn inside the "+" button.
     fn draw_add_entity_menu(&mut self, ui: &mut egui::Ui) {
         if ui.button("\u{25A0}  Cube").clicked() {
             self.add_mesh_entity(
@@ -149,22 +146,6 @@ impl EditorApp {
         }
     }
 }
-
-fn entity_icon(name: &str) -> &'static str {
-    if name.contains("Cube") {
-        "\u{25A0}"
-    } else if name.contains("Sphere") {
-        "\u{25C9}"
-    } else if name.contains("Plane") {
-        "\u{25A1}"
-    } else if name.contains("Light") {
-        "\u{2606}"
-    } else {
-        "\u{25CB}"
-    }
-}
-
-use egui::{Color32, CornerRadius};
 
 fn render_to_mesh(asset: &schiro_assets::types::MeshAsset) -> schiro_render::Mesh {
     let mut mesh = schiro_render::Mesh::new(&asset.name);
