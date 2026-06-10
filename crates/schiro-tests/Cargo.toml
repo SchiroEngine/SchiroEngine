@@ -1,0 +1,32 @@
+[package]
+name = "schiro-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Integration tests for the SchiroEngine workspace"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+schiro-core = { workspace = true }
+schiro-ecs = { workspace = true }
+schiro-assets = { workspace = true }
+schiro-physics = { workspace = true }
+schiro-render = { workspace = true }
+schiro-input = { workspace = true }
+schiro-audio = { workspace = true }
+
+bevy_ecs.workspace = true
+bevy_hierarchy.workspace = true
+winit.workspace = true
+glam.workspace = true
+bytemuck.workspace = true
+
+[dev-dependencies]
+# Anything that should only be linked for the test binaries goes here.
+
+[lints]
+workspace = true

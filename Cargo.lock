@@ -3636,6 +3636,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "schiro-tests"
+version = "0.1.0"
+dependencies = [
+ "bevy_ecs",
+ "bevy_hierarchy",
+ "bytemuck",
+ "glam",
+ "schiro-assets",
+ "schiro-audio",
+ "schiro-core",
+ "schiro-ecs",
+ "schiro-input",
+ "schiro-physics",
+ "schiro-render",
+ "winit",
+]
+
+[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

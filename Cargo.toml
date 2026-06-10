@@ -8,6 +8,7 @@ members = [
     "crates/schiro-physics",
     "crates/schiro-input",
     "crates/schiro-editor",
+    "crates/schiro-tests",
 ]
 resolver = "2"
 
