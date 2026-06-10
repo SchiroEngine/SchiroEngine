@@ -226,8 +226,11 @@ impl EditorApp {
             Some(r) => r,
             None => return,
         };
-        let transform =
-            glam::Mat4::from_scale_rotation_translation(glam::Vec3::ONE, glam::Quat::IDENTITY, translation);
+        let transform = glam::Mat4::from_scale_rotation_translation(
+            glam::Vec3::ONE,
+            glam::Quat::IDENTITY,
+            translation,
+        );
         renderer.add_mesh(mesh, &transform);
         let mi = renderer.mesh_count() - 1;
 
@@ -246,11 +249,14 @@ impl EditorApp {
 
     /// Spawns an empty entity (Transform + Name, no mesh, no Rotator).
     pub fn add_empty(&mut self, name: impl Into<String>, translation: glam::Vec3) {
-        let entity = self.world.spawn((
-            schiro_ecs::components::Name(name.into()),
-            Transform { translation, ..Default::default() },
-            schiro_ecs::components::GlobalTransform::default(),
-        )).id();
+        let entity = self
+            .world
+            .spawn((
+                schiro_ecs::components::Name(name.into()),
+                Transform { translation, ..Default::default() },
+                schiro_ecs::components::GlobalTransform::default(),
+            ))
+            .id();
         self.scene_entities.push(entity);
         self.selected_entity = Some(entity);
     }
