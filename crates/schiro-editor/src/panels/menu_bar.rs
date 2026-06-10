@@ -1,18 +1,16 @@
-//! Menu bar and toolbar.
+//! Menu bar and toolbar (Blender-style).
 
 use crate::app::{EditorApp, EditorTool};
 
 impl EditorApp {
-    /// Builds the top menu bar (File, Edit) and the toolbar with the
-    /// gizmo tool buttons and the Play/Stop button.
-    pub fn build_menu_bar(&mut self, _ctx: &egui::Context) {
+    pub fn build_menu_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu_bar")
             .frame(
-                egui::Frame::none()
+                egui::Frame::new()
                     .fill(crate::theme::panel_header_bg())
                     .inner_margin(egui::vec2(8.0, 1.0)),
             )
-            .show(_ctx, |ui| {
+            .show(ctx, |ui| {
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
                         if ui.button("New Scene").clicked() {
@@ -62,21 +60,20 @@ impl EditorApp {
                 });
             });
 
-        self.build_toolbar(_ctx);
+        self.build_toolbar(ctx);
     }
 
-    /// Builds the toolbar with the gizmo tool buttons and the
-    /// Play/Stop button.
-    fn build_toolbar(&mut self, _ctx: &egui::Context) {
+    fn build_toolbar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("toolbar")
             .frame(
-                egui::Frame::none()
+                egui::Frame::new()
                     .fill(crate::theme::panel_header_bg())
                     .inner_margin(egui::vec2(8.0, 1.0)),
             )
             .show_separator_line(false)
-            .show(_ctx, |ui| {
+            .show(ctx, |ui| {
                 ui.horizontal(|ui| {
+                    ui.add_space(4.0);
                     self.draw_tool_button(ui, "\u{2194}", "Translate", EditorTool::Translate);
                     self.draw_tool_button(ui, "\u{21BB}", "Rotate", EditorTool::Rotate);
                     self.draw_tool_button(ui, "\u{25A1}", "Scale", EditorTool::Scale);
@@ -85,28 +82,22 @@ impl EditorApp {
                     ui.add_space(8.0);
 
                     let (pr, resp) =
-                        ui.allocate_exact_size(egui::vec2(64.0, 24.0), egui::Sense::click());
+                        ui.allocate_exact_size(egui::vec2(64.0, 22.0), egui::Sense::click());
                     if ui.is_rect_visible(pr) {
                         let fill = if self.playing {
-                            egui::Color32::from_rgb(0xCC, 0x44, 0x44)
+                            Color32::from_rgb(0xB0, 0x30, 0x30)
                         } else {
-                            egui::Color32::from_rgb(0x3A, 0x8C, 0x4A)
+                            Color32::from_rgb(0x2D, 0x6E, 0x3A)
                         };
-                        ui.painter().rect(
-                            pr,
-                            egui::CornerRadius::same(4),
-                            fill,
-                            egui::Stroke::NONE,
-                            egui::StrokeKind::Inside,
-                        );
+                        ui.painter().rect_filled(pr, egui::CornerRadius::same(3), fill);
                         let icon = if self.playing { "\u{25A0}" } else { "\u{25B6}" };
-                        let label = if self.playing { " Stop" } else { " Play" };
+                        let lbl = if self.playing { " Stop" } else { " Play" };
                         ui.painter().text(
                             pr.center(),
                             egui::Align2::CENTER_CENTER,
-                            format!("{}{}", icon, label),
-                            egui::FontId::proportional(13.0),
-                            egui::Color32::WHITE,
+                            format!("{}{}", icon, lbl),
+                            egui::FontId::proportional(12.0),
+                            Color32::WHITE,
                         );
                     }
                     if resp.clicked() {
@@ -116,10 +107,6 @@ impl EditorApp {
             });
     }
 
-    /// Draws a single toolbar button for a gizmo tool.
-    ///
-    /// `icon` is the Unicode glyph to display, `label` the tooltip
-    /// text and `tool` the tool the button activates.
     pub fn draw_tool_button(
         &mut self,
         ui: &mut egui::Ui,
@@ -129,28 +116,24 @@ impl EditorApp {
     ) {
         use EditorTool::*;
         let selected = self.current_tool == tool;
-        let (rect, response) = ui.allocate_exact_size(egui::vec2(32.0, 22.0), egui::Sense::click());
+        let (rect, response) = ui.allocate_exact_size(egui::vec2(30.0, 20.0), egui::Sense::click());
         if ui.is_rect_visible(rect) {
             let fill = if selected {
                 crate::theme::accent_color()
             } else if response.hovered() {
-                ui.style().visuals.widgets.hovered.bg_fill
+                crate::theme::hover()
             } else {
-                ui.style().visuals.widgets.inactive.bg_fill
+                Color32::TRANSPARENT
             };
-            ui.painter().rect(
-                rect,
-                egui::CornerRadius::same(4),
-                fill,
-                egui::Stroke::NONE,
-                egui::StrokeKind::Inside,
-            );
+            if fill != Color32::TRANSPARENT {
+                ui.painter().rect_filled(rect, egui::CornerRadius::same(3), fill);
+            }
             ui.painter().text(
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
                 icon,
                 egui::FontId::proportional(14.0),
-                if selected { crate::theme::text_bright() } else { crate::theme::text_dim() },
+                if selected { Color32::WHITE } else { crate::theme::text_dim() },
             );
         }
         if response.clicked() {
@@ -167,3 +150,5 @@ impl EditorApp {
         ));
     }
 }
+
+use egui::Color32;

@@ -1,81 +1,173 @@
-//! Color palette and egui theme helpers for the editor.
+//! Color palette and egui theme inspired by Blender's dark
+//! interface: deep charcoal backgrounds, orange accent for
+//! selections, subtle grey borders and a flat clean hierarchy.
 //!
-//! [`apply_dark_theme`] is the entry point: it builds a complete dark
-//! [`egui::Visuals`] set tuned for the editor and pushes the
-//! resulting style into the supplied egui context. The remaining
-//! functions return individual colors that the rest of the editor
-//! reuses for borders, buttons and selection accents.
+//! [`apply_dark_theme`] pushed the entire Visuals + Style set
+//! into the egui context once at startup. The remaining helpers
+//! return individual colors that the rest of the editor reuses
+//! for borders, separators and interaction feedback.
 
 use egui::{Color32, CornerRadius, Stroke, Visuals};
 
-/// Applies the dark theme used by the editor to the supplied egui
+// ---------------------------------------------------------------------------
+// Base palette (Blender-style)
+// ---------------------------------------------------------------------------
+
+/// Deepest canvas, used for the viewport and empty scroll areas.
+const DARKEST: Color32 = Color32::from_rgb(0x18, 0x18, 0x1A);
+
+/// Panel background — same shade used by every side panel and the
+/// property region.
+const PANEL_BG: Color32 = Color32::from_rgb(0x22, 0x22, 0x26);
+
+/// Slightly lighter surface, used for widget and group backgrounds.
+const SURFACE: Color32 = Color32::from_rgb(0x2A, 0x2A, 0x2E);
+
+/// Hover / highlight tint.
+const HOVER: Color32 = Color32::from_rgb(0x36, 0x36, 0x3B);
+
+/// Orange accent (Blender's &#34;#E5A93A&#34; desaturated a touch).
+const ACCENT: Color32 = Color32::from_rgb(0xE5, 0x8E, 0x0C);
+
+/// Desaturated accent used for thin borders.
+const ACCENT_FAINT: Color32 = Color32::from_rgb(0x60, 0x3C, 0x06);
+
+/// Bright text — used for labels and primary content.
+const TEXT_BRIGHT: Color32 = Color32::from_rgb(0xE8, 0xE8, 0xEB);
+
+/// Dimmed text — used for secondary info and placeholders.
+const TEXT_DIM: Color32 = Color32::from_rgb(0x8C, 0x8C, 0x92);
+
+/// Thin border colour.
+const BORDER: Color32 = Color32::from_rgb(0x3A, 0x3A, 0x3F);
+
+// ---------------------------------------------------------------------------
+// Theme entry point
+// ---------------------------------------------------------------------------
+
+/// Applies the Blender-inspired dark theme to the supplied egui
 /// context.
 ///
-/// The function overrides the panel fills, widget backgrounds,
-/// selection color, spacing and a few additional visuals so that
-/// every editor panel looks consistent.
+/// The function overrides every [`Visuals`] field and tweaks the
+/// global [`egui::Style`] so that every panel, button and widget
+/// inherits the same base palette without per-widget setup.
 pub fn apply_dark_theme(ctx: &egui::Context) {
     let mut visuals = Visuals::dark();
-    visuals.override_text_color = Some(Color32::from_rgb(0xCC, 0xCF, 0xD4));
-    visuals.panel_fill = Color32::from_rgb(0x1A, 0x1B, 0x1E);
-    visuals.window_fill = Color32::from_rgb(0x1E, 0x1F, 0x23);
-    visuals.faint_bg_color = Color32::from_rgb(0x22, 0x23, 0x28);
-    visuals.extreme_bg_color = Color32::from_rgb(0x10, 0x10, 0x14);
-    visuals.code_bg_color = Color32::from_rgb(0x18, 0x19, 0x1D);
+
+    // Override text.
+    visuals.override_text_color = Some(TEXT_BRIGHT);
+
+    // Panel / window backgrounds.
+    visuals.panel_fill = PANEL_BG;
+    visuals.window_fill = PANEL_BG;
+    visuals.faint_bg_color = SURFACE;
+    visuals.extreme_bg_color = DARKEST;
+    visuals.code_bg_color = Color32::from_rgb(0x1C, 0x1C, 0x1F);
+
+    // Window chrome.
     visuals.window_corner_radius = CornerRadius::same(6);
     visuals.window_shadow = egui::epaint::Shadow {
         offset: [0, 4].into(),
         blur: 16,
         spread: 0,
-        color: Color32::from_black_alpha(120),
+        color: Color32::from_black_alpha(140),
     };
-    visuals.hyperlink_color = Color32::from_rgb(0x5C, 0x8D, 0xE6);
+
+    // Links and selection.
+    visuals.hyperlink_color = ACCENT;
     visuals.selection = egui::style::Selection {
-        bg_fill: Color32::from_rgb(0x3D, 0x55, 0x8B),
-        stroke: Stroke::new(1.0, Color32::from_rgb(0x4D, 0x78, 0xCC)),
+        bg_fill: Color32::from_rgb(0x56, 0x36, 0x06),
+        stroke: Stroke::new(1.0, ACCENT),
     };
-    visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(0x25, 0x26, 0x2B);
-    visuals.widgets.noninteractive.corner_radius = CornerRadius::same(3);
-    visuals.widgets.inactive.bg_fill = Color32::from_rgb(0x2A, 0x2B, 0x30);
-    visuals.widgets.inactive.corner_radius = CornerRadius::same(3);
-    visuals.widgets.hovered.bg_fill = Color32::from_rgb(0x35, 0x36, 0x3D);
-    visuals.widgets.hovered.corner_radius = CornerRadius::same(3);
-    visuals.widgets.active.bg_fill = Color32::from_rgb(0x2D, 0x2E, 0x35);
-    visuals.widgets.active.corner_radius = CornerRadius::same(3);
-    visuals.widgets.open.bg_fill = Color32::from_rgb(0x25, 0x26, 0x2B);
-    visuals.widgets.open.corner_radius = CornerRadius::same(3);
+
+    // Widgets — noninteractive, inactive, hovered, active, open.
+    let w = &mut visuals.widgets;
+
+    let corner = CornerRadius::same(3);
+    w.noninteractive.bg_fill = Color32::from_rgb(0x28, 0x28, 0x2C);
+    w.noninteractive.corner_radius = corner;
+
+    w.inactive.bg_fill = Color32::from_rgb(0x2E, 0x2E, 0x33);
+    w.inactive.weak_bg_fill = Color32::from_rgb(0x28, 0x28, 0x2C);
+    w.inactive.corner_radius = corner;
+
+    w.hovered.bg_fill = HOVER;
+    w.hovered.weak_bg_fill = Color32::from_rgb(0x30, 0x30, 0x35);
+    w.hovered.corner_radius = corner;
+
+    w.active.bg_fill = Color32::from_rgb(0x35, 0x35, 0x3A);
+    w.active.weak_bg_fill = Color32::from_rgb(0x30, 0x30, 0x35);
+    w.active.corner_radius = corner;
+
+    w.open.bg_fill = Color32::from_rgb(0x28, 0x28, 0x2C);
+    w.open.weak_bg_fill = Color32::from_rgb(0x28, 0x28, 0x2C);
+    w.open.corner_radius = corner;
 
     ctx.set_visuals(visuals);
 
+    // Global style overrides.
     let mut style = (*ctx.style()).clone();
-    style.spacing.item_spacing = egui::vec2(8.0, 4.0);
-    style.spacing.button_padding = egui::vec2(12.0, 4.0);
+    style.spacing.item_spacing = egui::vec2(8.0, 5.0);
+    style.spacing.button_padding = egui::vec2(12.0, 5.0);
     style.spacing.indent = 18.0;
+    style.spacing.interact_size = egui::vec2(24.0, 24.0);
     ctx.set_style(style);
 }
 
-/// Accent color used for selection outlines and active buttons.
+// ---------------------------------------------------------------------------
+// Reusable colour helpers — these map every non‑egui draw call to the
+// palette above.
+// ---------------------------------------------------------------------------
+
+/// Accent colour used for selection outlines, active tool buttons and
+/// gizmo axes.
 pub fn accent_color() -> Color32 {
-    Color32::from_rgb(0x4D, 0x78, 0xCC)
+    ACCENT
 }
 
-/// Background color used for panel headers (menu bar, toolbar, status
-/// bar).
+/// Fainter version of the accent, useful for borders or subtle
+/// separators.
+pub fn accent_faint() -> Color32 {
+    ACCENT_FAINT
+}
+
+/// Background used by panel headers (menu bar, toolbar, status bar).
 pub fn panel_header_bg() -> Color32 {
-    Color32::from_rgb(0x22, 0x23, 0x28)
+    Color32::from_rgb(0x1E, 0x1E, 0x22)
 }
 
-/// Dim text color used for secondary labels and placeholders.
-pub fn text_dim() -> Color32 {
-    Color32::from_rgb(0x88, 0x8C, 0x94)
+/// Very dark background used for sunken areas (viewport, empty scroll
+/// panes).
+pub fn darkest() -> Color32 {
+    DARKEST
 }
 
-/// Bright text color used for primary labels.
+/// Bright text — labels and primary content.
 pub fn text_bright() -> Color32 {
-    Color32::from_rgb(0xE8, 0xEA, 0xED)
+    TEXT_BRIGHT
 }
 
-/// Slightly lighter background used for hover and selected states.
+/// Dimmed text — secondary info and placeholders.
+pub fn text_dim() -> Color32 {
+    TEXT_DIM
+}
+
+/// Thin border colour.
+pub fn border() -> Color32 {
+    BORDER
+}
+
+/// Hover highlight.
+pub fn hover() -> Color32 {
+    HOVER
+}
+
+/// Surface fill (used for inspector groups and hierarchy rows).
+pub fn surface() -> Color32 {
+    SURFACE
+}
+
+/// Light surface used when a panel background is slightly elevated.
 pub fn faint_bg_color() -> Color32 {
-    Color32::from_rgb(0x22, 0x23, 0x28)
+    SURFACE
 }

@@ -1,11 +1,6 @@
-//! Inspector panel: displays and edits the components of the
-//! currently selected entity.
-//!
-//! Translation, rotation and scale are exposed through egui
-//! `DragValue` widgets. Changes are written back into the ECS
-//! world via [`bevy_ecs::world::World::get_mut`]. The rotation
-//! is edited in YXZ Euler degrees and converted to a quaternion
-//! on the fly.
+//! Inspector panel (Blender-style). Sections use plain
+//! [`egui::CollapsingHeader`] without a helper closure so the
+//! borrow checker stays happy.
 
 use bevy_ecs::prelude::*;
 use glam::Quat;
@@ -14,227 +9,192 @@ use schiro_ecs::components::{Name, Rotator, Transform};
 use crate::app::EditorApp;
 
 impl EditorApp {
-    /// Builds the right hand inspector panel.
     pub fn build_inspector_panel(&mut self, ctx: &egui::Context) {
+        let frame = egui::Frame::new()
+            .fill(crate::theme::panel_header_bg())
+            .inner_margin(egui::Margin::same(0));
+
         egui::SidePanel::right("inspector_panel")
             .resizable(true)
             .default_width(300.0)
             .min_width(220.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(ctx.style().visuals.panel_fill)
-                    .inner_margin(egui::vec2(8.0, 6.0)),
-            )
+            .frame(frame)
             .show(ctx, |ui| {
-                ui.label(
-                    egui::RichText::new("Inspector")
-                        .color(crate::theme::text_bright())
-                        .size(13.0)
-                        .strong(),
+                egui::Frame::new()
+                    .fill(crate::theme::panel_header_bg())
+                    .inner_margin(egui::vec2(10.0, 5.0))
+                    .show(ui, |ui| {
+                        ui.label(
+                            egui::RichText::new("Properties")
+                                .color(crate::theme::text_bright())
+                                .size(11.5)
+                                .strong(),
+                        );
+                    });
+                ui.painter().hline(
+                    ui.available_rect_before_wrap().x_range(),
+                    ui.cursor().top(),
+                    egui::Stroke::new(1.0_f32, crate::theme::border()),
                 );
-                ui.add_space(6.0);
+                ui.add_space(2.0);
+
                 if let Some(entity) = self.selected_entity {
-                    self.draw_inspector_content(ui, entity);
+                    egui::ScrollArea::vertical()
+                        .id_salt("insp_scroll")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            egui::Frame::new().inner_margin(egui::vec2(8.0, 6.0)).show(ui, |ui| {
+                                egui::CollapsingHeader::new("Name")
+                                    .default_open(true)
+                                    .show(ui, |ui| self.draw_name_section(ui, entity));
+
+                                ui.add_space(3.0);
+
+                                egui::CollapsingHeader::new("Translation")
+                                    .default_open(true)
+                                    .show(ui, |ui| self.draw_translation_section(ui, entity));
+
+                                ui.add_space(2.0);
+
+                                egui::CollapsingHeader::new("Rotation (deg)")
+                                    .default_open(true)
+                                    .show(ui, |ui| self.draw_rotation_section(ui, entity));
+
+                                ui.add_space(2.0);
+
+                                egui::CollapsingHeader::new("Scale")
+                                    .default_open(true)
+                                    .show(ui, |ui| self.draw_scale_section(ui, entity));
+
+                                ui.add_space(4.0);
+
+                                egui::CollapsingHeader::new("Components").default_open(true).show(
+                                    ui,
+                                    |ui| {
+                                        self.draw_rotator_section(ui, entity);
+                                    },
+                                );
+                            });
+                        });
                 } else {
-                    ui.add_space(12.0);
-                    ui.label(
-                        egui::RichText::new("No object selected")
-                            .color(crate::theme::text_dim())
-                            .size(12.0),
-                    );
+                    ui.add_space(16.0);
+                    ui.vertical_centered(|ui| {
+                        ui.label(
+                            egui::RichText::new("No selection")
+                                .color(crate::theme::text_dim())
+                                .size(11.5),
+                        );
+                    });
                 }
             });
     }
 
-    /// Draws the body of the inspector for a single entity.
-    fn draw_inspector_content(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        egui::ScrollArea::vertical().id_salt("insp_scroll").show(ui, |ui| {
-            ui.add_space(2.0);
-            self.draw_name_section(ui, entity);
-            ui.add_space(8.0);
-            self.draw_translation_section(ui, entity);
-            ui.add_space(8.0);
-            self.draw_rotation_section(ui, entity);
-            ui.add_space(8.0);
-            self.draw_scale_section(ui, entity);
-            ui.add_space(8.0);
-            self.draw_rotator_section(ui, entity);
-        });
-    }
-
-    /// Editable name. Falls back to a generated name when the entity
-    /// has no [`Name`] component.
     fn draw_name_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
         let label = match self.world.get::<Name>(entity) {
             Some(n) => n.0.clone(),
             None => format!("Entity {}", entity.index()),
         };
         let mut next = label.clone();
-        let response = ui.add(
-            egui::TextEdit::singleline(&mut next)
-                .hint_text("name")
-                .font(egui::TextStyle::Body)
-                .desired_width(ui.available_width()),
-        );
-        if response.lost_focus() && next != label {
-            // Insert or update the Name component in place.
-            if let Some(mut existing) = self.world.get_mut::<Name>(entity) {
-                existing.0 = next;
+        if ui
+            .add(
+                egui::TextEdit::singleline(&mut next)
+                    .hint_text("name")
+                    .desired_width(ui.available_width()),
+            )
+            .lost_focus()
+            && next != label
+        {
+            if let Some(mut n) = self.world.get_mut::<Name>(entity) {
+                n.0 = next;
             } else {
                 self.world.entity_mut(entity).insert(Name(next));
             }
         }
     }
 
-    /// Translation as an editable Vec3.
     fn draw_translation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        ui.group(|ui| {
-            ui.label(egui::RichText::new("Translation").color(crate::theme::text_dim()).size(11.0));
-            let mut t = match self.world.get::<Transform>(entity) {
-                Some(t) => *t,
-                None => return,
-            };
-            let mut edited = t.translation;
+        let Some(mut t) = self.world.get_mut::<Transform>(entity) else { return };
+        let labels = ["X", "Y", "Z"];
+        for i in 0..3 {
             ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("X").color(crate::theme::accent_color()).size(11.5));
-                ui.add(egui::DragValue::new(&mut edited.x).speed(0.05).max_decimals(3));
-            });
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("Y").color(crate::theme::accent_color()).size(11.5));
-                ui.add(egui::DragValue::new(&mut edited.y).speed(0.05).max_decimals(3));
-            });
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new("Z").color(crate::theme::accent_color()).size(11.5));
-                ui.add(egui::DragValue::new(&mut edited.z).speed(0.05).max_decimals(3));
-            });
-            if edited != t.translation {
-                if let Some(mut existing) = self.world.get_mut::<Transform>(entity) {
-                    existing.translation = edited;
-                }
-                t.translation = edited;
-                let _ = t;
-            }
-        });
-    }
-
-    /// Rotation as YXZ Euler degrees, converted to a quaternion on
-    /// the fly. We read the current rotation, convert to euler,
-    /// expose the euler, and re-compose on change.
-    fn draw_rotation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        ui.group(|ui| {
-            ui.label(
-                egui::RichText::new("Rotation (deg)").color(crate::theme::text_dim()).size(11.0),
-            );
-            let t = match self.world.get::<Transform>(entity) {
-                Some(t) => *t,
-                None => return,
-            };
-            let (yaw, pitch, roll) = t.rotation.to_euler(glam::EulerRot::YXZ);
-            // Read the initial values out of deg first, then take
-            // individual mutable references inside the loop to avoid
-            // simultaneous borrows of the same array.
-            let initial = [yaw.to_degrees(), pitch.to_degrees(), roll.to_degrees()];
-            let mut deg = initial;
-            let labels = ["Y", "X", "Z"];
-            let mut changed = false;
-            for i in 0..3 {
-                let label = labels[i];
-                ui.horizontal(|ui| {
-                    ui.label(
-                        egui::RichText::new(label).color(crate::theme::accent_color()).size(11.5),
-                    );
-                    let resp = ui.add(
-                        egui::DragValue::new(&mut deg[i])
-                            .speed(0.5)
-                            .max_decimals(1)
-                            .suffix("\u{00B0}"),
-                    );
-                    if resp.changed() {
-                        changed = true;
-                    }
-                });
-            }
-            if changed {
-                let new_rotation = Quat::from_euler(
-                    glam::EulerRot::YXZ,
-                    deg[0].to_radians(),
-                    deg[1].to_radians(),
-                    deg[2].to_radians(),
+                ui.label(
+                    egui::RichText::new(labels[i])
+                        .color(crate::theme::accent_color())
+                        .size(11.0)
+                        .monospace(),
                 );
-                if let Some(mut existing) = self.world.get_mut::<Transform>(entity) {
-                    existing.rotation = new_rotation;
-                }
-            }
-            let _ = initial;
-        });
+                ui.add(egui::DragValue::new(&mut t.translation[i]).speed(0.05).max_decimals(3));
+            });
+        }
     }
 
-    /// Scale as an editable Vec3.
+    fn draw_rotation_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
+        let Some(mut t) = self.world.get_mut::<Transform>(entity) else { return };
+        let (yaw, pitch, roll) = t.rotation.to_euler(glam::EulerRot::YXZ);
+        let mut deg = [yaw.to_degrees(), pitch.to_degrees(), roll.to_degrees()];
+        let labels = ["Y", "X", "Z"];
+        for i in 0..3 {
+            ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new(labels[i])
+                        .color(crate::theme::accent_color())
+                        .size(11.0)
+                        .monospace(),
+                );
+                ui.add(
+                    egui::DragValue::new(&mut deg[i]).speed(0.5).max_decimals(1).suffix("\u{00B0}"),
+                );
+            });
+        }
+        t.rotation = Quat::from_euler(
+            glam::EulerRot::YXZ,
+            deg[0].to_radians(),
+            deg[1].to_radians(),
+            deg[2].to_radians(),
+        );
+    }
+
     fn draw_scale_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        ui.group(|ui| {
-            ui.label(egui::RichText::new("Scale").color(crate::theme::text_dim()).size(11.0));
-            let t = match self.world.get::<Transform>(entity) {
-                Some(t) => *t,
-                None => return,
-            };
-            let mut edited = t.scale;
-            let labels = ["X", "Y", "Z"];
-            let mut changed = false;
-            for i in 0..3 {
-                let label = labels[i];
-                ui.horizontal(|ui| {
-                    ui.label(
-                        egui::RichText::new(label).color(crate::theme::accent_color()).size(11.5),
-                    );
-                    let resp = ui.add(
-                        egui::DragValue::new(&mut edited[i])
-                            .speed(0.02)
-                            .range(0.001..=1000.0)
-                            .max_decimals(3),
-                    );
-                    if resp.changed() {
-                        changed = true;
-                    }
-                });
-            }
-            if changed {
-                if let Some(mut existing) = self.world.get_mut::<Transform>(entity) {
-                    existing.scale = edited;
-                }
-            }
-        });
+        let Some(mut t) = self.world.get_mut::<Transform>(entity) else { return };
+        let labels = ["X", "Y", "Z"];
+        for i in 0..3 {
+            ui.horizontal(|ui| {
+                ui.label(
+                    egui::RichText::new(labels[i])
+                        .color(crate::theme::accent_color())
+                        .size(11.0)
+                        .monospace(),
+                );
+                ui.add(
+                    egui::DragValue::new(&mut t.scale[i])
+                        .speed(0.02)
+                        .range(0.001..=1000.0)
+                        .max_decimals(3),
+                );
+            });
+        }
     }
 
-    /// Toggle button to add or remove the [`Rotator`] component.
     fn draw_rotator_section(&mut self, ui: &mut egui::Ui, entity: Entity) {
-        let has_rotator = self.world.get::<Rotator>(entity).is_some();
-        let label = if has_rotator { "Rotator: ON" } else { "Rotator: off" };
+        let has = self.world.get::<Rotator>(entity).is_some();
+        let label = if has { "Rotator:  ON" } else { "Rotator:  off" };
         let (rect, resp) =
-            ui.allocate_exact_size(egui::vec2(ui.available_width(), 24.0), egui::Sense::click());
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 22.0), egui::Sense::click());
         if ui.is_rect_visible(rect) {
-            let fill = if has_rotator {
-                crate::theme::accent_color()
-            } else {
-                crate::theme::faint_bg_color()
-            };
-            ui.painter().rect(
-                rect,
-                egui::CornerRadius::same(4),
-                fill,
-                egui::Stroke::NONE,
-                egui::StrokeKind::Inside,
-            );
+            let fill =
+                if has { crate::theme::hover() } else { Color32::from_rgb(0x28, 0x28, 0x2C) };
+            ui.painter().rect_filled(rect, egui::CornerRadius::same(3), fill);
             ui.painter().text(
                 rect.left_center() + egui::vec2(8.0, 0.0),
                 egui::Align2::LEFT_CENTER,
                 label,
                 egui::FontId::proportional(11.5),
-                if has_rotator { crate::theme::text_bright() } else { crate::theme::text_dim() },
+                if has { crate::theme::text_bright() } else { crate::theme::text_dim() },
             );
         }
         if resp.clicked() {
             let mut em = self.world.entity_mut(entity);
-            if has_rotator {
+            if has {
                 em.remove::<Rotator>();
             } else {
                 em.insert(Rotator::default());
@@ -242,3 +202,5 @@ impl EditorApp {
         }
     }
 }
+
+use egui::Color32;
