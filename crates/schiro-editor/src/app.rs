@@ -64,6 +64,9 @@ pub struct EditorApp {
     pub current_tool: EditorTool,
     /// `true` when the runtime is in play mode.
     pub playing: bool,
+    /// Snapshot of the scene taken when Play was pressed,
+    /// restored on Stop.
+    pub play_snapshot: Option<String>,
     /// Undo command stack.
     pub undo_stack: Vec<crate::command::Command>,
     /// Redo command stack.
@@ -119,6 +122,7 @@ impl EditorApp {
             gizmo_drag: None,
             current_tool: EditorTool::Translate,
             playing: false,
+            play_snapshot: None,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         };
@@ -161,6 +165,9 @@ impl EditorApp {
                         if i.consume_key(egui::Modifiers::CTRL, egui::Key::D) {
                             self.duplicate_entity();
                         }
+                    }
+                    if i.consume_key(egui::Modifiers::NONE, egui::Key::Delete) {
+                        self.delete_selected();
                     }
                 });
                 self.build_editor_ui(ctx)
@@ -283,6 +290,17 @@ impl EditorApp {
             .id();
         self.scene_entities.push(entity);
         self.selected_entity = Some(entity);
+    }
+
+    /// Deletes the currently selected entity: removes it from the
+    /// ECS world, the scene entity list and the mesh map.
+    pub fn delete_selected(&mut self) {
+        let Some(entity) = self.selected_entity else { return };
+        self.entity_mesh_map.remove(&entity);
+        self.scene_entities.retain(|&e| e != entity);
+        self.world.entity_mut(entity).despawn();
+        self.selected_entity = None;
+        self.gizmo_drag = None;
     }
 
     /// Returns the human readable name of an entity, falling back to

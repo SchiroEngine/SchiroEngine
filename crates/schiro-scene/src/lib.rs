@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Top-level layout of a `.srn-scene` JSON file.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SceneFile {
     /// Schema version so the loader can migrate old formats.
     pub version: u32,

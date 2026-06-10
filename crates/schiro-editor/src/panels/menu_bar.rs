@@ -2,6 +2,8 @@
 
 use crate::app::{EditorApp, EditorTool};
 
+use crate::scene::mesh_desc_to_render;
+
 impl EditorApp {
     pub fn build_menu_bar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("menu_bar")
@@ -67,6 +69,10 @@ impl EditorApp {
                             self.duplicate_entity();
                             ui.close_menu();
                         }
+                        if ui.button("Delete  [Suppr]").clicked() {
+                            self.delete_selected();
+                            ui.close_menu();
+                        }
                     });
                 });
             });
@@ -112,7 +118,86 @@ impl EditorApp {
                         );
                     }
                     if resp.clicked() {
-                        self.playing = !self.playing;
+                        if self.playing {
+                            // Stop: restore from snapshot.
+                            self.playing = false;
+                            if let Some(ref json) = self.play_snapshot.take() {
+                                let file: schiro_scene::SceneFile =
+                                    serde_json::from_str(json).unwrap_or_default();
+                                self.clear_scene();
+                                // Re-use load_scene logic without I/O.
+                                for desc in &file.entities {
+                                    let t = glam::Mat4::from_scale_rotation_translation(
+                                        glam::Vec3::from(desc.scale),
+                                        glam::Quat::from_array(desc.rotation),
+                                        glam::Vec3::from(desc.translation),
+                                    );
+                                    let mi = if let Some(ref mesh_desc) = desc.mesh {
+                                        let renderer = self.renderer.as_mut().unwrap();
+                                        let mesh_data = mesh_desc_to_render(mesh_desc);
+                                        let idx = renderer.mesh_count();
+                                        renderer.add_mesh(&mesh_data, &t);
+                                        Some(idx)
+                                    } else {
+                                        None
+                                    };
+                                    let mut cmd = self.world.spawn((
+                                        schiro_ecs::components::Name(desc.name.clone()),
+                                        schiro_ecs::components::Transform {
+                                            translation: desc.translation.into(),
+                                            rotation: glam::Quat::from_array(desc.rotation),
+                                            scale: desc.scale.into(),
+                                        },
+                                        schiro_ecs::components::GlobalTransform::default(),
+                                    ));
+                                    if let Some(mi) = mi {
+                                        cmd.insert(schiro_ecs::components::MeshRenderer {
+                                            mesh_handle: Some(mi),
+                                            visible: true,
+                                        });
+                                    }
+                                    if let Some(speed) = desc.rotator {
+                                        cmd.insert(schiro_ecs::components::Rotator {
+                                            speed: glam::Vec3::from(speed),
+                                        });
+                                    }
+                                    let entity = cmd.id();
+                                    self.scene_entities.push(entity);
+                                    if let Some(mi) = mi {
+                                        self.entity_mesh_map.insert(entity, mi);
+                                    }
+                                }
+                                // Re-upload gizmo meshes.
+                                if let Some(renderer) = self.renderer.as_mut() {
+                                    let gizmo = schiro_render::GizmoMeshes::new();
+                                    self.gizmo_mesh_start = renderer.mesh_count();
+                                    let hide = glam::Mat4::from_scale(glam::Vec3::ZERO);
+                                    for part in [
+                                        &gizmo.x_shaft,
+                                        &gizmo.x_tip,
+                                        &gizmo.y_shaft,
+                                        &gizmo.y_tip,
+                                        &gizmo.z_shaft,
+                                        &gizmo.z_tip,
+                                        &gizmo.rot_x,
+                                        &gizmo.rot_y,
+                                        &gizmo.rot_z,
+                                        &gizmo.scale_x,
+                                        &gizmo.scale_y,
+                                        &gizmo.scale_z,
+                                    ] {
+                                        renderer.add_mesh(part, &hide);
+                                    }
+                                }
+                                self.selected_entity = None;
+                            }
+                        } else {
+                            // Play: snapshot current scene.
+                            self.play_snapshot = Some(
+                                serde_json::to_string(&self.scene_as_file()).unwrap_or_default(),
+                            );
+                            self.playing = true;
+                        }
                     }
                 });
             });

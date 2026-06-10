@@ -149,6 +149,46 @@ impl EditorApp {
         Ok(())
     }
 
+    /// Builds a [`SceneFile`] from the current editor state (used
+    /// for the Play snapshot).
+    pub fn scene_as_file(&self) -> schiro_scene::SceneFile {
+        let mut entities = Vec::new();
+        for &e in &self.scene_entities {
+            let name = self.get_entity_name(e);
+            let t = self.get_entity_transform(e);
+            let rotator = self
+                .world
+                .get::<schiro_ecs::components::Rotator>(e)
+                .map(|r| [r.speed.x, r.speed.y, r.speed.z]);
+            let has_renderer = self.world.get::<schiro_ecs::components::MeshRenderer>(e).is_some();
+            let mesh = if has_renderer {
+                if name.contains("Sphere") {
+                    Some(MeshDesc::Sphere { segments: 32, rings: 16 })
+                } else if name.contains("Grid") {
+                    Some(MeshDesc::Grid { rows: 10, cols: 10, spacing: 1.0 })
+                } else if name.contains("Cube") {
+                    Some(MeshDesc::Cube)
+                } else if name.contains("Plane") {
+                    Some(MeshDesc::Plane)
+                } else {
+                    Some(MeshDesc::Sphere { segments: 16, rings: 8 })
+                }
+            } else {
+                None
+            };
+            entities.push(EntityDesc {
+                name,
+                translation: t.translation.into(),
+                rotation: [t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w],
+                scale: t.scale.into(),
+                rotator,
+                mesh,
+            });
+            let _ = has_renderer;
+        }
+        schiro_scene::SceneFile { version: CURRENT_VERSION, entities }
+    }
+
     /// Clears every scene entity, the mesh map and the renderer's
     /// mesh list.
     pub fn clear_scene(&mut self) {
@@ -165,7 +205,7 @@ impl EditorApp {
     }
 }
 
-fn mesh_desc_to_render(desc: &MeshDesc) -> schiro_render::Mesh {
+pub fn mesh_desc_to_render(desc: &MeshDesc) -> schiro_render::Mesh {
     match *desc {
         MeshDesc::Sphere { segments, rings } => {
             let asset = schiro_assets::procedural::create_sphere(1.0, segments, rings);
