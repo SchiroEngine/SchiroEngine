@@ -1547,6 +1547,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8babf46d4c1c9d92deac9f7be466f76dfc4482b6452fc5024b5e8daf6ffeb3ee"
 dependencies = [
  "mint",
+ "serde",
 ]
 
 [[package]]
@@ -3583,6 +3584,9 @@ dependencies = [
  "schiro-input",
  "schiro-physics",
  "schiro-render",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3650,6 +3654,8 @@ dependencies = [
  "schiro-input",
  "schiro-physics",
  "schiro-render",
+ "serde",
+ "serde_json",
  "winit",
 ]
 

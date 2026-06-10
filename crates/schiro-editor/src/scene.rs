@@ -1,0 +1,257 @@
+//! Scene serialization and deserialization.
+//!
+//! A scene is stored as a JSON file containing a flat list of
+//! entity descriptions. Each description carries enough
+//! information to reconstruct the entity's [`Transform`],
+//! [`Rotator`], name and procedural mesh geometry on the next
+//! load. Other components are not persisted yet.
+
+use serde::{Deserialize, Serialize};
+
+use crate::app::EditorApp;
+
+/// Top-level layout of a `.srn-scene` JSON file.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SceneFile {
+    /// Schema version so the loader can migrate old formats.
+    pub version: u32,
+    /// Sorted list of entities in the scene.
+    pub entities: Vec<EntityDesc>,
+}
+
+/// Serializable snapshot of a single entity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EntityDesc {
+    /// Human-readable entity name.
+    pub name: String,
+    /// Translation, world units.
+    pub translation: [f32; 3],
+    /// Rotation, stored as an `(x, y, z, w)` quaternion.
+    pub rotation: [f32; 4],
+    /// Scale, default `(1, 1, 1)`.
+    pub scale: [f32; 3],
+    /// Rotator speed, in rad/s per axis. `None` when the entity
+    /// has no [`Rotator`] component.
+    pub rotator: Option<[f32; 3]>,
+    /// Procedural mesh descriptor. Required for every entity that
+    /// carries a [`MeshRenderer`].
+    pub mesh: MeshDesc,
+}
+
+/// Serializable description of a procedural mesh.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum MeshDesc {
+    /// UV sphere.
+    Sphere {
+        /// Number of slices around the Y axis.
+        segments: u32,
+        /// Number of stacks from pole to pole.
+        rings: u32,
+    },
+    /// Flat XZ grid.
+    Grid {
+        /// Number of rows.
+        rows: u32,
+        /// Number of columns.
+        cols: u32,
+        /// Distance between two adjacent cells, in world units.
+        spacing: f32,
+    },
+}
+
+const CURRENT_VERSION: u32 = 1;
+
+impl EditorApp {
+    /// Saves the current scene to `path` as a JSON file.
+    pub fn save_scene(&self, path: impl AsRef<std::path::Path>) -> Result<(), SaveError> {
+        let path = path.as_ref();
+        let mut entities = Vec::new();
+
+        for &e in &self.scene_entities {
+            let name = self.get_entity_name(e);
+            let t = self.get_entity_transform(e);
+            let rotator = self
+                .world
+                .get::<schiro_ecs::components::Rotator>(e)
+                .map(|r| [r.speed.x, r.speed.y, r.speed.z]);
+
+            // Determine the mesh kind from the entity name (current
+            // convention — a future AABB-based heuristic will be
+            // more robust).
+            let has_renderer = self.world.get::<schiro_ecs::components::MeshRenderer>(e).is_some();
+            let mesh = if has_renderer {
+                if name.contains("Sphere") {
+                    MeshDesc::Sphere { segments: 32, rings: 16 }
+                } else if name.contains("Grid") {
+                    MeshDesc::Grid { rows: 10, cols: 10, spacing: 1.0 }
+                } else {
+                    // Fallback — any unknown entity gets a placeholder
+                    // sphere.  The real fix is a per-entity mesh ID
+                    // stored in a resource.
+                    MeshDesc::Sphere { segments: 16, rings: 8 }
+                }
+            } else {
+                MeshDesc::Sphere { segments: 16, rings: 8 }
+            };
+            let _ = has_renderer;
+
+            entities.push(EntityDesc {
+                name,
+                translation: t.translation.into(),
+                rotation: [t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w],
+                scale: t.scale.into(),
+                rotator,
+                mesh,
+            });
+        }
+
+        let file = SceneFile { version: CURRENT_VERSION, entities };
+        let json =
+            serde_json::to_string_pretty(&file).map_err(|e| SaveError::Json(e.to_string()))?;
+        std::fs::write(path, json)?;
+        Ok(())
+    }
+
+    /// Loads a scene from `path`, clears the current editor scene
+    /// and recreates every entity with the saved components and
+    /// meshes.
+    pub fn load_scene(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), LoadError> {
+        let path = path.as_ref();
+        let json = std::fs::read_to_string(path)?;
+        let file: SceneFile =
+            serde_json::from_str(&json).map_err(|e| LoadError::Json(e.to_string()))?;
+
+        if file.version != CURRENT_VERSION {
+            return Err(LoadError::Version { expected: CURRENT_VERSION, found: file.version });
+        }
+
+        // Wipe the old scene.
+        self.clear_scene();
+
+        for desc in &file.entities {
+            let mesh_data = mesh_desc_to_render(&desc.mesh);
+            let transform = glam::Mat4::from_scale_rotation_translation(
+                glam::Vec3::from(desc.scale),
+                glam::Quat::from_array(desc.rotation),
+                glam::Vec3::from(desc.translation),
+            );
+            let renderer = self.renderer.as_mut().ok_or(LoadError::NoRenderer)?;
+            let mi = renderer.mesh_count();
+            renderer.add_mesh(&mesh_data, &transform);
+
+            let mut entity_cmd = self.world.spawn((
+                schiro_ecs::components::Name(desc.name.clone()),
+                schiro_ecs::components::Transform {
+                    translation: desc.translation.into(),
+                    rotation: glam::Quat::from_array(desc.rotation),
+                    scale: desc.scale.into(),
+                },
+                schiro_ecs::components::GlobalTransform::default(),
+                schiro_ecs::components::MeshRenderer { mesh_handle: Some(mi), visible: true },
+            ));
+            if let Some(speed) = desc.rotator {
+                entity_cmd
+                    .insert(schiro_ecs::components::Rotator { speed: glam::Vec3::from(speed) });
+            }
+            let entity = entity_cmd.id();
+            self.scene_entities.push(entity);
+            self.entity_mesh_map.insert(entity, mi);
+        }
+
+        // The gizmo mesh count is recomputed after clearing in
+        // clear_scene.  Re-upload gizmo meshes.
+        {
+            let renderer = self.renderer.as_mut().ok_or(LoadError::NoRenderer)?;
+            let gizmo = schiro_render::GizmoMeshes::new();
+            self.gizmo_mesh_start = renderer.mesh_count();
+            let hide = glam::Mat4::from_scale(glam::Vec3::ZERO);
+            for part in [
+                &gizmo.x_shaft,
+                &gizmo.x_tip,
+                &gizmo.y_shaft,
+                &gizmo.y_tip,
+                &gizmo.z_shaft,
+                &gizmo.z_tip,
+                &gizmo.rot_x,
+                &gizmo.rot_y,
+                &gizmo.rot_z,
+                &gizmo.scale_x,
+                &gizmo.scale_y,
+                &gizmo.scale_z,
+            ] {
+                renderer.add_mesh(part, &hide);
+            }
+        }
+
+        tracing::info!(
+            "loaded scene from {} with {} entities",
+            path.display(),
+            file.entities.len()
+        );
+        Ok(())
+    }
+
+    /// Clears every scene entity, the mesh map and the renderer's
+    /// mesh list.
+    pub fn clear_scene(&mut self) {
+        for &e in &self.scene_entities {
+            self.world.entity_mut(e).despawn();
+        }
+        self.scene_entities.clear();
+        self.entity_mesh_map.clear();
+        self.selected_entity = None;
+        self.gizmo_drag = None;
+        if let Some(ref mut r) = self.renderer {
+            r.meshes.clear();
+        }
+    }
+}
+
+fn mesh_desc_to_render(desc: &MeshDesc) -> schiro_render::Mesh {
+    match *desc {
+        MeshDesc::Sphere { segments, rings } => {
+            let asset = schiro_assets::procedural::create_sphere(1.0, segments, rings);
+            asset_to_render_mesh(&asset)
+        }
+        MeshDesc::Grid { rows, cols, spacing } => schiro_render::Mesh::grid(rows, cols, spacing),
+    }
+}
+
+fn asset_to_render_mesh(asset: &schiro_assets::types::MeshAsset) -> schiro_render::Mesh {
+    let mut mesh = schiro_render::Mesh::new(&asset.name);
+    for i in 0..asset.positions.len() {
+        let tangent =
+            if i < asset.tangents.len() { asset.tangents[i] } else { [1.0, 0.0, 0.0, 1.0] };
+        mesh.vertices.push(schiro_render::mesh::Vertex {
+            position: asset.positions[i],
+            normal: if i < asset.normals.len() { asset.normals[i] } else { [0.0, 1.0, 0.0] },
+            uv: if i < asset.uvs.len() { asset.uvs[i] } else { [0.0, 0.0] },
+            tangent,
+        });
+    }
+    mesh.indices = asset.indices.clone();
+    mesh
+}
+
+/// Errors returned by [`EditorApp::save_scene`].
+#[derive(Debug, thiserror::Error)]
+pub enum SaveError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("JSON encoding error: {0}")]
+    Json(String),
+}
+
+/// Errors returned by [`EditorApp::load_scene`].
+#[derive(Debug, thiserror::Error)]
+pub enum LoadError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("JSON decoding error: {0}")]
+    Json(String),
+    #[error("unsupported scene version {found} (expected {expected})")]
+    Version { expected: u32, found: u32 },
+    #[error("no renderer available")]
+    NoRenderer,
+}

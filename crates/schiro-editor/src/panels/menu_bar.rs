@@ -15,8 +15,18 @@ impl EditorApp {
             .show(_ctx, |ui| {
                 egui::menu::bar(ui, |ui| {
                     ui.menu_button("File", |ui| {
-                        if ui.button("New Project").clicked() {}
-                        if ui.button("Open Project").clicked() {}
+                        if ui.button("New Scene").clicked() {
+                            self.clear_scene();
+                            ui.close_menu();
+                        }
+                        if ui.button("Open Scene").clicked() {
+                            self.load_scene("scene.srn-scene").ok();
+                            ui.close_menu();
+                        }
+                        if ui.button("Save Scene").clicked() {
+                            self.save_scene("scene.srn-scene").ok();
+                            ui.close_menu();
+                        }
                         ui.separator();
                         if ui.button("Exit").clicked() {
                             std::process::exit(0);
