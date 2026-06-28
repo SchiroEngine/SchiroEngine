@@ -1,26 +1,13 @@
 [workspace]
-members = [
-    "crates/schiro-core",
-    "crates/schiro-ecs",
-    "crates/schiro-render",
-    "crates/schiro-assets",
-    "crates/schiro-audio",
-    "crates/schiro-physics",
-    "crates/schiro-input",
-    "crates/schiro-editor",
-    "crates/schiro-tests",
-    "crates/schiro-scene",
-    "crates/schiro-camera",
-    "crates/schiro-ui",
-]
-resolver = "2"
+members = ["crates/*"]
+resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/SchiroEngine/SchiroEngine"
-authors = ["Gab", "Vekoo"]
+authors = ["Gab", "kov3y"]
 
 [workspace.lints.rust]
 unused_must_use = "warn"
