@@ -93,7 +93,11 @@ impl Environment {
                 aspect: wgpu::TextureAspect::All,
             },
             &white_pixel,
-            wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(4), rows_per_image: Some(1) },
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4),
+                rows_per_image: Some(1),
+            },
             wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 },
         );
         let dummy_view = dummy.create_view(&wgpu::TextureViewDescriptor::default());
