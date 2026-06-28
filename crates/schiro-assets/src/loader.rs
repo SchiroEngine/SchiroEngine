@@ -4,8 +4,6 @@
 //! implement, along with the [`AssetLoadError`] enum returned by
 //! every loader shipped with the engine.
 
-use crate::Asset;
-
 /// Trait implemented by every concrete loader registered with the
 /// [`crate::AssetServer`].
 ///
