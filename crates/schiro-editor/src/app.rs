@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use bevy_ecs::prelude::*;
-use glam::Vec3;
 use schiro_ecs::components::Transform;
 use schiro_ecs::systems::Time;
 use schiro_ecs::World;

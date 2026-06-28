@@ -4,7 +4,6 @@
 //! handling to display the rendered scene and forward user input to
 //! the gizmo / picking pipeline.
 
-use glam::{Vec2, Vec3};
 use schiro_camera::{MouseButton, OrbitCamera};
 
 /// Embedded 3D viewport widget.

@@ -10,7 +10,7 @@ use schiro_ecs::World;
 use schiro_render::Renderer;
 use tracing::info;
 
-use crate::app::{EditorTool, GizmoDrag};
+use crate::app::EditorTool;
 
 /// Spawns the default scene entities (a sphere and a grid), uploads
 /// their meshes to the renderer, and pre-allocates the gizmo meshes.
